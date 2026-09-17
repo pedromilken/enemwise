@@ -50,7 +50,9 @@ button, input { font: inherit; color: inherit; }
 
 /* topo */
 .topo { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 1.25rem 0; flex-wrap: wrap; }
-.marca { font-family: var(--display); font-weight: 800; font-size: 1.6rem; letter-spacing: -0.02em; color: var(--tinta); text-decoration: none; }
+.marca { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--display); font-weight: 800; font-size: 1.6rem; letter-spacing: -0.02em; color: var(--tinta); text-decoration: none; }
+.marca-simbolo { color: var(--azul); flex: none; }
+.marca-texto { display: inline-block; }
 .marca span { font-weight: 600; color: var(--tinta-2); }
 .topo nav { display: flex; gap: 0.35rem; }
 .topo nav a { padding: 0.35rem 0.9rem; border-radius: var(--raio-ctrl); color: var(--tinta-2); text-decoration: none; }
@@ -212,6 +214,7 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .entrar { max-width: 30rem; margin: 2rem auto; }
 .entrar .lede { margin-bottom: 1.25rem; }
 .entrar .stack { max-width: none; }
+.entrar .btn.primary { justify-self: start; }
 .btn.largo { width: 100%; }
 .ou { text-align: center; color: var(--tinta-2); font-size: 0.9rem; margin: 1rem 0; }
 .entrar-links { display: grid; gap: 0.5rem; justify-items: start; margin: 1.25rem 0; }

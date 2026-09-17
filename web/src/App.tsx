@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Conta, ConfirmarVinculo, type StatusSync } from './components/Conta'
+import { Marca } from './components/Marca'
 import { loadBundle } from './data'
 import { makeBank, newStudent } from './kt/engine'
 import { setD } from './kt/irt'
@@ -33,6 +34,8 @@ export default function App() {
   useEffect(() => { loadBundle().then((b) => { setD(b.meta.D); setBundle(b) }).catch((e) => setErro(String(e.message ?? e))) }, [])
   useEffect(() => { const f = () => setTab(fromHash()); addEventListener('hashchange', f); return () => removeEventListener('hashchange', f) }, [])
   const bank = useMemo(() => (bundle ? makeBank(bundle.items, bundle.priors, bundle.meta.bandas) : null), [bundle])
+  // Treinar fica aberto a qualquer visitante; o retorno e a área do professor pedem conta
+  const precisaConta = nuvemDisponivel && !usuario && (tab === 'mapa' || tab === 'professor')
 
   const salvarLocal = (s: StudentState | null) => { setStudent(s); saveStudent(s) }
 
@@ -93,7 +96,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topo">
-        <a className="marca" href="#treinar">ENEM<span>Wise</span></a>
+        <a className="marca" href="#treinar"><Marca /><span className="marca-texto">ENEM<span>Wise</span></span></a>
         <nav aria-label="Seções">
           {TABS.map(([t, label]) => (
             <a key={t} href={`#${t}`} aria-current={tab === t ? 'page' : undefined}>{label}</a>
@@ -125,12 +128,24 @@ export default function App() {
         {tab === 'entrar' && <Entrar onPronto={() => { location.hash = '#treinar' }} />}
         {erro && <section className="folha"><h2>O banco de questões não carregou.</h2><p>{erro}</p></section>}
         {!erro && (!bundle || !bank) && <p className="carregando">Carregando banco de questões…</p>}
-        {bundle && bank && tab === 'professor' && <Professor bank={bank} meta={bundle.meta} descricoes={bundle.descricoes} bloom={bundle.bloom} />}
+        {precisaConta && (
+          <section className="folha entrar">
+            <h1 className="display small">{tab === 'mapa' ? 'Seu retorno precisa de conta' : 'Área do professor'}</h1>
+            <p className="lede">
+              {tab === 'mapa'
+                ? 'O treino é livre. Para guardar o histórico e ver a devolutiva pela Matriz de Referência, entre na sua conta.'
+                : 'Entre para carregar os arquivos da turma e ver as competências que mais pedem aula.'}
+            </p>
+            <a className="btn primary" href="#entrar">Entrar ou criar conta</a>
+            <p className="fineprint">Sem conta, você continua treinando normalmente: o progresso fica só neste navegador.</p>
+          </section>
+        )}
+        {!precisaConta && bundle && bank && tab === 'professor' && <Professor bank={bank} meta={bundle.meta} descricoes={bundle.descricoes} bloom={bundle.bloom} />}
         {bundle && bank && tab !== 'professor' && tab !== 'entrar' && !student && !pendente && (
           <Inicio bandas={bundle.meta.bandas} onStart={(nome, banda) => update({ ...newStudent(bank, nome, banda), atualizadoEm: Date.now() })} />
         )}
         {bundle && bank && student && tab === 'treinar' && <Treinar bank={bank} meta={bundle.meta} student={student} onChange={update} />}
-        {bundle && bank && student && tab === 'mapa' && (
+        {!precisaConta && bundle && bank && student && tab === 'mapa' && (
           <Mapa bank={bank} meta={bundle.meta} student={student} descricoes={bundle.descricoes} bloom={bundle.bloom} onChange={update} onReset={() => update(null)} />
         )}
       </main>
