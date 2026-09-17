@@ -1,0 +1,199 @@
+import { useMemo, useState } from 'react'
+import { Bubble } from '../components/Bubble'
+import { level, pCorrect } from '../kt/bkt'
+import { type Bank, type Filtro, mastery, nextItem, paramsFor, record, setConfianca, theta } from '../kt/engine'
+import { scoreFromTheta } from '../kt/irt'
+import { type Area, AREAS, type Confianca, type Item, type Meta, nomeHabilidade, skillKey, type StudentState } from '../kt/types'
+import { ask, DEFAULT_MODEL, eliminar, getConfig, prompt, setConfig } from '../tutor'
+
+function Enunciado({ item }: { item: Item }) {
+  const partes = (item.enunciado ?? '').split('[[placeholder]]')
+  return (
+    <div className="enunciado">
+      {partes.map((p, i) => (
+        <div key={i}>
+          {p.split(/\n|(?=##)/).filter(Boolean).map((l, j) =>
+            l.startsWith('#') ? <p key={j} className="enun-titulo">{l.replace(/^#+\s*/, '')}</p> : <p key={j}>{l}</p>)}
+          {i < partes.length - 1 && item.figuras?.[i] && (
+            <figure>
+              <img src={item.figuras[i]} alt={item.descricao?.[i] ?? 'Figura da questão'} loading="lazy" />
+            </figure>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Tutor({ item, respondida, resposta }: { item: Item; respondida: boolean; resposta: string | null }) {
+  const [cfg, setCfg] = useState(getConfig())
+  const [texto, setTexto] = useState<string | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  async function explicar() {
+    if (!cfg) return
+    setBusy(true); setErro(null)
+    try { setTexto(await ask(cfg, prompt('explicacao', item, resposta ?? '?'))) }
+    catch (e) { setErro(e instanceof Error ? e.message : 'Falha ao consultar o tutor.') }
+    finally { setBusy(false) }
+  }
+  return (
+    <details className="tutor">
+      <summary>Tutor com IA</summary>
+      {!cfg ? (
+        <form className="stack" onSubmit={(e) => {
+          e.preventDefault()
+          const f = new FormData(e.currentTarget)
+          const c = { apiKey: String(f.get('k')), model: String(f.get('m')) || DEFAULT_MODEL }
+          setConfig(c); setCfg(c)
+        }}>
+          <label className="field"><span>Chave da API da Anthropic</span><input name="k" type="password" required autoComplete="off" /></label>
+          <label className="field"><span>Modelo</span><input name="m" defaultValue={DEFAULT_MODEL} /></label>
+          <button className="btn" type="submit">Ativar tutor</button>
+          <small>A chave fica só nesta aba do navegador e é apagada ao fechá-la.</small>
+        </form>
+      ) : (
+        <div className="stack">
+          {respondida && <button className="btn" disabled={busy} onClick={explicar}>{busy ? 'Pensando…' : 'Explicar a resolução'}</button>}
+          {!respondida && <small>Responda para liberar a explicação. Antes disso, use "Pedir dica".</small>}
+          {erro && <p role="alert" className="erro">{erro}</p>}
+          {texto && <p className="tutor-texto">{texto}</p>}
+          <button className="link" onClick={() => { setConfig(null); setCfg(null) }}>Desativar tutor</button>
+        </div>
+      )}
+    </details>
+  )
+}
+
+export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: Meta; student: StudentState; onChange: (s: StudentState) => void }) {
+  const [areas, setAreas] = useState<Area[]>(AREAS)
+  const [edicao, setEdicao] = useState<number | null>(null)
+  const filtro = (as: Area[], ed: number | null): Filtro => (i) => as.includes(i.area) && (ed === null || i.ano === ed)
+  const [item, setItem] = useState<Item | null>(() => nextItem(student, bank, filtro(AREAS, null)))
+  const [escolha, setEscolha] = useState<string | null>(null)
+  const [respondida, setRespondida] = useState(false)
+  const [dica, setDica] = useState<string | null>(null)
+  const [dicaBusy, setDicaBusy] = useState(false)
+
+  const k = item ? skillKey(item.area, item.habilidade) : null
+  const pL = item && k ? mastery(student, bank, k) : 0
+  // Previsão congelada no momento em que a questão aparece: é a aposta do modelo, não um recálculo pós-resposta.
+  const previsto = useMemo(() => (item ? pCorrect(pL, paramsFor(bank, item, student.banda)) : 0), [item?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const th = useMemo(() => (item ? theta(student, bank, item.area) : null), [student, bank, item])
+  const banda = item?.p_banda?.[student.banda]
+
+  function recomecar(as: Area[], ed: number | null) {
+    setAreas(as); setEdicao(ed); setEscolha(null); setRespondida(false); setDica(null)
+    setItem(nextItem(student, bank, filtro(as, ed)))
+  }
+  const trocarArea = (a: Area | 'todas') => recomecar(a === 'todas' ? AREAS : [a], edicao)
+  function confirmar() {
+    if (!item || !escolha) return
+    onChange(record(student, bank, item, escolha, dica !== null))
+    setRespondida(true)
+  }
+  function proxima() {
+    setEscolha(null); setRespondida(false); setDica(null)
+    setItem(nextItem(student, bank, filtro(areas, edicao)))
+  }
+  async function pedirDica() {
+    if (!item) return
+    const cfg = getConfig()
+    if (!cfg) { setDica(`A alternativa ${eliminar(item)} não é a correta.`); return }
+    setDicaBusy(true)
+    try { setDica(await ask(cfg, prompt('dica', item))) }
+    catch { setDica(`A alternativa ${eliminar(item)} não é a correta.`) }
+    finally { setDicaBusy(false) }
+  }
+
+  return (
+    <div className="treinar">
+      <div className="chips" role="group" aria-label="Área">
+        <button className={areas.length === 4 ? 'chip on' : 'chip'} onClick={() => trocarArea('todas')}>Todas as áreas</button>
+        {AREAS.map((a) => (
+          <button key={a} className={areas.length === 1 && areas[0] === a ? 'chip on' : 'chip'} onClick={() => trocarArea(a)}>{meta.areas[a]}</button>
+        ))}
+        <label className="edicao">
+          <span className="sr-only">Edição</span>
+          <select value={edicao ?? ''} onChange={(e) => recomecar(areas, e.target.value ? Number(e.target.value) : null)}>
+            <option value="">Todas as edições</option>
+            {[...meta.edicoes_com_texto].reverse().map((ano) => <option key={ano} value={ano}>ENEM {ano}</option>)}
+          </select>
+        </label>
+      </div>
+
+      {!item ? (
+        <section className="folha vazio">
+          <h2>Você respondeu todas as questões desta seleção.</h2>
+          <p>Escolha outra área ou veja no mapa quais habilidades ainda estão abertas.</p>
+        </section>
+      ) : (
+        <div className="treinar-grid">
+          <article className="folha questao" aria-live="polite">
+            <header className="questao-head">
+              <span>Questão {item.numero ?? ''}</span>
+              <span>ENEM {item.ano}</span>
+              <span>{meta.areas[item.area]}, {item.habilidade === 0 ? 'habilidade não informada' : `habilidade ${item.habilidade}`}</span>
+            </header>
+            <Enunciado item={item} />
+            <ol className="alternativas">
+              {(item.alternativas ?? []).map((alt, i) => {
+                const l = 'ABCDE'[i]
+                const estado = respondida ? (l === item.gabarito ? 'certa' : l === escolha ? 'errada' : '') : l === escolha ? 'marcada' : ''
+                return (
+                  <li key={l}>
+                    <button className={`alt ${estado}`} disabled={respondida} aria-pressed={l === escolha} onClick={() => setEscolha(l)}>
+                      <span className="alt-letra">{l}</span>
+                      <span>{alt}</span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ol>
+            {dica && <p className="dica">{dica}</p>}
+            <div className="acoes">
+              {!respondida ? (
+                <>
+                  <button className="btn" onClick={pedirDica} disabled={dica !== null || dicaBusy}>{dicaBusy ? 'Buscando dica…' : 'Pedir dica'}</button>
+                  <button className="btn primary" onClick={confirmar} disabled={!escolha}>Confirmar resposta</button>
+                </>
+              ) : (
+                <>
+                  <p className={escolha === item.gabarito ? 'veredito ok' : 'veredito'}>
+                    {escolha === item.gabarito ? 'Resposta correta.' : `Gabarito: ${item.gabarito}.`}
+                  </p>
+                  <button className="btn primary" onClick={proxima}>Próxima questão</button>
+                  <div className="confianca" role="group" aria-label="Quão seguro você estava?">
+                    <span>Quão seguro você estava?</span>
+                    {([['chute', 'Chutei'], ['duvida', 'Tive dúvida'], ['certeza', 'Tinha certeza']] as [Confianca, string][]).map(([c, label]) => {
+                      const atual = [...student.tentativas].reverse().find((t) => t.itemId === item.id)?.confianca
+                      return <button key={c} className={atual === c ? 'chip on' : 'chip'} aria-pressed={atual === c}
+                        onClick={() => onChange(setConfianca(student, item.id, c))}>{label}</button>
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </article>
+
+          <aside className="painel">
+            <div className="painel-bloco">
+              <Bubble value={mastery(student, bank, k!)} size={56} label="Domínio da habilidade" />
+              <div>
+                <p className="painel-num">{Math.round(mastery(student, bank, k!) * 100)}%</p>
+                <p className="painel-label">domínio de {nomeHabilidade(item.habilidade)}, {level(mastery(student, bank, k!))}</p>
+              </div>
+            </div>
+            <dl className="painel-dl">
+              <div><dt>Chance prevista de acerto</dt><dd>{Math.round(previsto * 100)}%</dd></div>
+              {banda != null && <div><dt>Acerto na sua faixa ({meta.bandas[student.banda].replace('-', ' a ')})</dt><dd>{Math.round(banda * 100)}%</dd></div>}
+              {th && <div><dt>Nota estimada em {item.area}</dt><dd>{Math.round(scoreFromTheta(th.mean))} ± {Math.round(100 * th.sd)}</dd></div>}
+              <div><dt>Acerto casual da questão (TRI)</dt><dd>{Math.round(item.c * 100)}%</dd></div>
+            </dl>
+            <Tutor key={item.id} item={item} respondida={respondida} resposta={escolha} />
+          </aside>
+        </div>
+      )}
+    </div>
+  )
+}

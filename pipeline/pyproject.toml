@@ -1,0 +1,21 @@
+[project]
+name = "enemwise-pipeline"
+version = "0.5.1"
+description = "ETL dos microdados do ENEM para o ENEMWise: itens (TRI), priors de KT por habilidade e vínculo com o texto das questões"
+requires-python = ">=3.10"
+dependencies = ["pandas>=2.2", "numpy>=1.26", "scipy>=1.11"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+parquet = ["pyarrow>=15"]
+textos = ["datasets>=2.18"]
+
+[project.scripts]
+enemwise = "enemwise_pipeline.cli:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["enemwise_pipeline*"]

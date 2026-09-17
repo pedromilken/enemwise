@@ -1,0 +1,16 @@
+node_modules/
+web/dist/
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+# microdados brutos nunca entram no repositório
+data/raw/
+*.zip
+MICRODADOS_*.csv
+ITENS_PROVA_*.csv
+# gerados localmente pelo pipeline (os JSON do app em web/public/data SÃO versionados)
+pipeline/out/
+pipeline/textos/
+pipeline/v92.json
+pipeline/.pytest_cache/

@@ -1,0 +1,111 @@
+import { describe, expect, it } from 'vitest'
+import { posterior, update } from './bkt'
+import { makeBank, newStudent, nextItem, record, setConfianca } from './engine'
+import { itensParaRevisar, phi, risco } from './feedback'
+import { eap, info3pl, p3pl } from './irt'
+import type { Item, SkillPrior } from './types'
+
+const item = (id: string, h: number, b: number, c = 0.2): Item => ({
+  id, co_item: Number(id), ano: 2099, area: 'MT', habilidade: h, a: 2, b, c, gabarito: 'A',
+  enunciado: 'x', alternativas: ['1', '2', '3', '4', '5'],
+})
+
+describe('TRI', () => {
+  it('p3pl respeita o piso de acerto casual', () => {
+    expect(p3pl(-10, 2, 0, 0.2)).toBeCloseTo(0.2, 3)
+    expect(p3pl(0, 2, 0, 0.2)).toBeCloseTo(0.6, 5)
+  })
+  it('informação é máxima perto da dificuldade', () => {
+    expect(info3pl(0.2, 2, 0, 0.2)).toBeGreaterThan(info3pl(2.5, 2, 0, 0.2))
+  })
+  it('EAP sobe com acertos em itens difíceis', () => {
+    const hard = { a: 2, b: 1.5, c: 0.2 }
+    expect(eap(Array(6).fill({ ...hard, correct: true })).mean).toBeGreaterThan(eap(Array(6).fill({ ...hard, correct: false })).mean)
+  })
+})
+
+describe('BKT', () => {
+  const p = { guess: 0.2, slip: 0.1, learn: 0.1 }
+  it('acerto aumenta e erro diminui a crença', () => {
+    expect(posterior(0.5, true, p)).toBeGreaterThan(0.5)
+    expect(posterior(0.5, false, p)).toBeLessThan(0.5)
+  })
+  it('guess alto torna o acerto menos informativo', () => {
+    expect(posterior(0.5, true, { ...p, guess: 0.35 })).toBeLessThan(posterior(0.5, true, p))
+  })
+  it('aprendizagem nunca reduz P(L)', () => {
+    expect(update(0.3, true, p)).toBeGreaterThanOrEqual(posterior(0.3, true, p))
+  })
+})
+
+describe('motor', () => {
+  const items = [item('1', 1, -1), item('2', 1, 0), item('3', 2, 0.5), item('4', 2, 2)]
+  const priors: SkillPrior[] = [
+    { area: 'MT', habilidade: 1, banda: 1, banda_label: '450-550', n: 1, p_acerto: 0.7, guess: 0.2, slip: 0.1, p_l0: 0.8 },
+    { area: 'MT', habilidade: 2, banda: 1, banda_label: '450-550', n: 1, p_acerto: 0.3, guess: 0.2, slip: 0.1, p_l0: 0.1 },
+  ]
+  const bank = makeBank(items, priors, ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+
+  it('prioriza a habilidade mais frágil', () => {
+    const s = newStudent(bank, 'teste', 1)
+    expect(nextItem(s, bank, (i) => i.area === 'MT', () => 0.9)?.habilidade).toBe(2)
+  })
+  it('não repete questão já respondida', () => {
+    let s = newStudent(bank, 'teste', 1)
+    const first = nextItem(s, bank, (i) => i.area === 'MT', () => 0.9)!
+    s = record(s, bank, first, 'A', false)
+    expect(nextItem(s, bank, (i) => i.area === 'MT', () => 0.9)?.id).not.toBe(first.id)
+  })
+  it('nenhuma habilidade começa consolidada', () => {
+    const s = newStudent(bank, 'teste', 1)
+    expect(Math.max(...Object.values(s.mastery))).toBeLessThanOrEqual(0.85)
+  })
+  it('respeita o filtro de edição', () => {
+    const s = newStudent(bank, 'teste', 1)
+    expect(nextItem(s, bank, (i) => i.id === '4', () => 0.9)?.id).toBe('4')
+    expect(nextItem(s, bank, () => false, () => 0.9)).toBeNull()
+  })
+  it('dica conta como erro para o rastreamento', () => {
+    const s = newStudent(bank, 'teste', 1)
+    const withHint = record(s, bank, items[2], 'A', true)
+    const clean = record(s, bank, items[2], 'A', false)
+    expect(withHint.mastery['MT-H2']).toBeLessThan(clean.mastery['MT-H2'])
+  })
+})
+
+describe('pedagógico', () => {
+  const its = Array.from({ length: 8 }, (_, i) => item(String(i + 1), 1, 0))
+  const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+
+  it('phi bate com a normal padrão', () => {
+    expect(phi(0)).toBeCloseTo(0.5, 6)
+    expect(phi(1.96)).toBeCloseTo(0.975, 3)
+  })
+  it('registra a previsão antes da resposta', () => {
+    const s = record(newStudent(bank, 'a', 1), bank, its[0], 'A', false)
+    expect(s.tentativas[0].pPrevisto).toBeGreaterThan(0)
+    expect(s.tentativas[0].thetaAntes).toBeDefined()
+  })
+  it('não rotula risco sem evidência mínima', () => {
+    const s = record(newStudent(bank, 'a', 1), bank, its[0], 'B', false)
+    expect(risco(s, bank, 'MT', 600).faixa).toBe('evidência insuficiente')
+  })
+  it('muitos erros em itens médios levam a risco alto para meta 650', () => {
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its) s = record(s, bank, it, 'B', false)
+    expect(risco(s, bank, 'MT', 650).faixa).toBe('abaixo da meta provável')
+  })
+  it('autoavaliação fica na última tentativa do item', () => {
+    let s = record(newStudent(bank, 'a', 1), bank, its[0], 'A', false)
+    s = setConfianca(s, its[0].id, 'chute')
+    expect(s.tentativas[0].confianca).toBe('chute')
+  })
+  it('sinaliza item que a turma erra muito além do esperado', () => {
+    const turma = Array.from({ length: 4 }, (_, i) => {
+      let s = newStudent(bank, `e${i}`, 4)
+      for (const it of its.slice(0, 6)) s = record(s, bank, it, 'A', false)
+      return record(s, bank, its[7], 'B', false)
+    })
+    expect(itensParaRevisar(turma, bank)[0]?.item.id).toBe('8')
+  })
+})
