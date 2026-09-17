@@ -209,6 +209,9 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .ponto.offline { background: var(--rosa); }
 .vinculo p { margin: 0 0 0.6rem; }
 
+.conta-painel .google { margin-bottom: 0.75rem; }
+.conta-painel .ou { text-align: center; color: var(--tinta-2); font-size: 0.85rem; margin: 0.25rem 0 0; }
+
 /* devolutiva pela Matriz */
 .devolutiva { margin: 2rem 0 1rem; }
 .devolutiva .mapa-head { align-items: center; margin-bottom: 0.5rem; }

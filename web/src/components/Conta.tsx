@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { googleDisponivel } from '../nuvem'
 import type { Usuario } from '../nuvem'
 
 export type StatusSync = 'local' | 'sincronizando' | 'sincronizado' | 'offline'
@@ -7,10 +8,11 @@ const ROTULO: Record<StatusSync, string> = {
   local: 'Salvo neste aparelho', sincronizando: 'Salvando…', sincronizado: 'Salvo na sua conta', offline: 'Sem conexão: salvo neste aparelho',
 }
 
-export function Conta({ usuario, status, onEntrar, onSair, onApagarNuvem }: {
+export function Conta({ usuario, status, onEntrar, onEntrarGoogle, onSair, onApagarNuvem }: {
   usuario: Usuario | null
   status: StatusSync
   onEntrar: (email: string) => Promise<void>
+  onEntrarGoogle: () => Promise<void>
   onSair: (apagarLocal: boolean) => void
   onApagarNuvem: () => void
 }) {
@@ -31,6 +33,17 @@ export function Conta({ usuario, status, onEntrar, onSair, onApagarNuvem }: {
             enviado ? (
               <p>Enviamos um link para <strong>{email}</strong>. Abra o e-mail neste aparelho e clique no link para entrar.</p>
             ) : (
+              <>
+              {googleDisponivel && (
+                <div className="stack google">
+                  <button className="btn primary" onClick={async () => {
+                    setErro(null)
+                    try { await onEntrarGoogle() } catch (x) { setErro(x instanceof Error ? x.message : 'Não foi possível entrar com o Google.') }
+                  }}>Entrar com o Google</button>
+                  <small>Um toque, sem esperar e-mail.</small>
+                  <p className="ou">ou use seu e-mail</p>
+                </div>
+              )}
               <form className="stack" onSubmit={async (e) => {
                 e.preventDefault(); setErro(null)
                 try { await onEntrar(email.trim()); setEnviado(true) } catch (x) { setErro(x instanceof Error ? x.message : 'Não foi possível enviar o link.') }
@@ -38,7 +51,7 @@ export function Conta({ usuario, status, onEntrar, onSair, onApagarNuvem }: {
                 <label className="field"><span>Seu e-mail</span>
                   <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                 </label>
-                <button className="btn primary" type="submit">Receber link de acesso</button>
+                <button className={googleDisponivel ? "btn" : "btn primary"} type="submit">Receber link de acesso</button>
                 {erro && <p role="alert" className="erro">{erro}</p>}
                 <small>
                   Sem senha: você entra pelo link enviado ao e-mail. Guardamos só o e-mail e o seu progresso de treino, para você
@@ -46,6 +59,7 @@ export function Conta({ usuario, status, onEntrar, onSair, onApagarNuvem }: {
                   Menores de 18 anos devem usar com autorização de um responsável.
                 </small>
               </form>
+              </>
             )
           ) : (
             <div className="stack">

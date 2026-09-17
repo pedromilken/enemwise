@@ -25,6 +25,7 @@ jobs:
           # login opcional: sem estas variáveis do repositório, o site funciona só com progresso local
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          VITE_LOGIN_GOOGLE: ${{ vars.LOGIN_GOOGLE }}
       - uses: actions/upload-pages-artifact@v3
         with: { path: web/dist }
   deploy:

@@ -11,6 +11,8 @@ import type { StudentState } from './kt/types'
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 export const nuvemDisponivel = Boolean(URL && KEY)
+/** Só mostra o botão do Google se o provedor estiver mesmo ligado no Supabase (VITE_LOGIN_GOOGLE=1). */
+export const googleDisponivel = nuvemDisponivel && import.meta.env.VITE_LOGIN_GOOGLE === '1'
 
 let clienteP: Promise<SupabaseClient> | null = null
 function cliente(): Promise<SupabaseClient> {
@@ -39,6 +41,13 @@ export async function aoMudarSessao(cb: (u: Usuario | null) => void): Promise<()
 export async function entrarComEmail(email: string) {
   const { error } = await (await cliente()).auth.signInWithOtp({
     email, options: { emailRedirectTo: `${location.origin}${import.meta.env.BASE_URL}` },
+  })
+  if (error) throw new Error(error.message)
+}
+
+export async function entrarComGoogle() {
+  const { error } = await (await cliente()).auth.signInWithOAuth({
+    provider: 'google', options: { redirectTo: `${location.origin}${import.meta.env.BASE_URL}` },
   })
   if (error) throw new Error(error.message)
 }

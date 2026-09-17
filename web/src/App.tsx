@@ -6,7 +6,8 @@ import { setD } from './kt/irt'
 import { mesclar, precisaConfirmarVinculo } from './kt/sincronia'
 import type { StudentState } from './kt/types'
 import {
-  aoMudarSessao, apagarProgressoNuvem, baixarProgresso, entrarComEmail, enviarProgresso, nuvemDisponivel, sair, type Usuario,
+  aoMudarSessao, apagarProgressoNuvem, baixarProgresso, entrarComEmail, entrarComGoogle, enviarProgresso, nuvemDisponivel, sair,
+  type Usuario,
 } from './nuvem'
 import { Inicio } from './pages/Inicio'
 import { Mapa } from './pages/Mapa'
@@ -98,7 +99,7 @@ export default function App() {
             <a key={t} href={`#${t}`} aria-current={tab === t ? 'page' : undefined}>{label}</a>
           ))}
           {nuvemDisponivel && (
-            <Conta usuario={usuario} status={status} onEntrar={entrarComEmail}
+            <Conta usuario={usuario} status={status} onEntrar={entrarComEmail} onEntrarGoogle={entrarComGoogle}
               onSair={async (apagarLocal) => {
                 await sair()
                 if (apagarLocal) salvarLocal(null)

@@ -14,20 +14,48 @@ Com o login ligado, o estudante entra por um link enviado ao e-mail (sem senha) 
 
 ---
 
-## Configurar (uma vez)
+## Duas formas de entrar
+
+| | Entrar com o Google | Link no e-mail |
+|---|---|---|
+| Para o estudante | um toque, sem sair do site | precisa abrir o e-mail e voltar |
+| Fila de turma | sem limite de envio | o envio padrão do Supabase é limitado por hora |
+| Para você configurar | Google Cloud, cerca de 10 minutos | nada além do básico |
+| Quem fica de fora | quem não tem conta Google | ninguém |
+
+As duas convivem: com o Google ligado, o painel mostra o botão dele em cima e o campo de e-mail logo abaixo.
+
+---
+
+## Configuração básica (obrigatória)
 
 1. Crie um projeto gratuito em **supabase.com**.
-2. Em **SQL Editor**, rode o arquivo [`supabase/progresso.sql`](../supabase/progresso.sql).
+2. Em **SQL Editor**, rode o arquivo [`supabase/progresso.sql`](../supabase/progresso.sql). Confira depois:
+   ```sql
+   select tablename, rowsecurity from pg_tables where tablename = 'progresso';
+   select policyname, cmd from pg_policies where tablename = 'progresso';
+   ```
+   O primeiro precisa dar `true`; o segundo, 4 políticas.
 3. Em **Authentication → URL Configuration**:
    - **Site URL:** `https://pedromilken.github.io/enemwise/`
-   - **Redirect URLs:** adicione `https://pedromilken.github.io/enemwise/` e, para testar localmente, `http://localhost:5173/`
-4. Em **Project Settings → API**, copie a **Project URL** e a chave **anon / publishable**. Nunca use a `service_role`.
-5. No GitHub, em **Settings → Secrets and variables → Actions → Variables**, crie:
-   - `SUPABASE_URL` com a Project URL
-   - `SUPABASE_ANON_KEY` com a chave anon / publishable
-6. Em **Actions**, rode de novo **"Publicar no GitHub Pages"**. O botão **Entrar** aparece no topo.
+   - **Redirect URLs:** a mesma e, para testar local, `http://localhost:5173/`
+4. Em **Project Settings → API keys**, copie a chave **anon** (ou **publishable**). Nunca a `service_role`.
+5. No GitHub, em **Settings → Secrets and variables → Actions → Variables**, crie `SUPABASE_URL` e `SUPABASE_ANON_KEY`.
+   Precisa ser em **Variables**, não em Secrets: o build injeta esses valores no site, e Secrets viriam vazios. A chave anon é pública por desenho; quem protege os dados são as políticas do passo 2.
 
-Para testar localmente, crie `web/.env.local` com `VITE_SUPABASE_URL=...` e `VITE_SUPABASE_ANON_KEY=...`.
+## Entrar com o Google (recomendado para estudantes)
+
+6. No **Google Cloud Console**, crie um projeto.
+7. Configure a tela de consentimento (**Google Auth Platform**): tipo **External**, nome do app, e-mails de contato. Os escopos usados são só `email`, `profile` e `openid`, que não são sensíveis e não exigem revisão do Google.
+8. **Publique o app.** Em modo de teste, só entram usuários cadastrados na lista de teste, no máximo 100.
+9. Em **Credentials → Create credentials → OAuth client ID → Web application**, no campo **Authorized redirect URIs** cole exatamente o endereço que o Supabase mostra na tela do provedor Google:
+   `https://SEU-PROJETO.supabase.co/auth/v1/callback`
+10. Copie **Client ID** e **Client secret**.
+11. No Supabase, em **Authentication → Sign In / Providers → Google**: ative, cole as duas credenciais e salve.
+12. No GitHub, crie a variável `LOGIN_GOOGLE` com o valor `1`.
+13. Em **Actions**, rode **"Publicar no GitHub Pages"**.
+
+**Escolas com Google Workspace:** contas institucionais de estudante podem bloquear aplicativos de terceiros até o administrador liberar. Contas pessoais do Gmail entram normalmente, e o link por e-mail continua disponível para quem precisar.
 
 ---
 
