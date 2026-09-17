@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import audit as aud_mod, priors as pri
+from . import audit as aud_mod, conteudos as con, priors as pri
 from .schema import AREA_NOME, BANDAS, banda_label
 
 LIMITE_MB = 25
@@ -100,6 +100,9 @@ def merge(entrada: Path, web: Path, D: float = 1.0, sintetico: bool = False, inc
         "reprovadas_nos_priors": bool(incluir_reprovadas),
         "auditoria": aud,
         "vinculo_texto": [dict(v, ano=r["ano"]) for r in relatorios for v in r["vinculo_texto"]],
+        "conteudos": con.catalogo(),
+        "cobertura_conteudos": (con.cobertura(items_all[items_all["enunciado"].notna()]).to_dict(orient="records")
+                                if "topicos" in items_all and "enunciado" in items_all else []),
         "diagnostico_monotonia": pri.monotonic_share(priors) if not priors.empty else None,
         "fonte": "Microdados do ENEM (INEP)" + ("; dados sintéticos de demonstração" if sintetico else ""),
     }

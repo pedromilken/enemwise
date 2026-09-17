@@ -3,6 +3,7 @@ import { Bubble } from '../components/Bubble'
 import { level, pCorrect } from '../kt/bkt'
 import { type Bank, type Filtro, mastery, nextItem, paramsFor, record, setConfianca, theta } from '../kt/engine'
 import { scoreFromTheta } from '../kt/irt'
+import { disponiveis } from '../kt/conteudo'
 import { type Area, AREAS, type Confianca, type Item, type Meta, nomeHabilidade, skillKey, type StudentState } from '../kt/types'
 import { ask, DEFAULT_MODEL, eliminar, getConfig, prompt, setConfig } from '../tutor'
 
@@ -68,8 +69,13 @@ function Tutor({ item, respondida, resposta }: { item: Item; respondida: boolean
 export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: Meta; student: StudentState; onChange: (s: StudentState) => void }) {
   const [areas, setAreas] = useState<Area[]>(AREAS)
   const [edicao, setEdicao] = useState<number | null>(null)
-  const filtro = (as: Area[], ed: number | null): Filtro => (i) => as.includes(i.area) && (ed === null || i.ano === ed)
-  const [item, setItem] = useState<Item | null>(() => nextItem(student, bank, filtro(AREAS, null)))
+  const [topico, setTopico] = useState<string | null>(null)
+  const filtro = (as: Area[], ed: number | null, tp: string | null): Filtro => (i) =>
+    as.includes(i.area) && (ed === null || i.ano === ed) && (tp === null || (i.topicos ?? []).includes(tp))
+  const [item, setItem] = useState<Item | null>(() => nextItem(student, bank, filtro(AREAS, null, null)))
+  const catalogo = meta.conteudos ?? []
+  const conteudos = useMemo(() => disponiveis(bank, catalogo, areas), [bank, catalogo, areas])
+  const conteudoAtual = catalogo.find((c) => c.id === topico) ?? null
   const [escolha, setEscolha] = useState<string | null>(null)
   const [respondida, setRespondida] = useState(false)
   const [dica, setDica] = useState<string | null>(null)
@@ -82,11 +88,16 @@ export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: M
   const th = useMemo(() => (item ? theta(student, bank, item.area) : null), [student, bank, item])
   const banda = item?.p_banda?.[student.banda]
 
-  function recomecar(as: Area[], ed: number | null) {
-    setAreas(as); setEdicao(ed); setEscolha(null); setRespondida(false); setDica(null)
-    setItem(nextItem(student, bank, filtro(as, ed)))
+  function recomecar(as: Area[], ed: number | null, tp: string | null) {
+    setAreas(as); setEdicao(ed); setTopico(tp); setEscolha(null); setRespondida(false); setDica(null)
+    setItem(nextItem(student, bank, filtro(as, ed, tp)))
   }
-  const trocarArea = (a: Area | 'todas') => recomecar(a === 'todas' ? AREAS : [a], edicao)
+  // trocar de área derruba o conteúdo escolhido quando ele não pertence à nova seleção
+  const trocarArea = (a: Area | 'todas') => {
+    const as = a === 'todas' ? AREAS : [a]
+    const tp = topico && catalogo.some((c) => c.id === topico && as.includes(c.area)) ? topico : null
+    recomecar(as, edicao, tp)
+  }
   function confirmar() {
     if (!item || !escolha) return
     onChange(record(student, bank, item, escolha, dica !== null))
@@ -94,7 +105,7 @@ export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: M
   }
   function proxima() {
     setEscolha(null); setRespondida(false); setDica(null)
-    setItem(nextItem(student, bank, filtro(areas, edicao)))
+    setItem(nextItem(student, bank, filtro(areas, edicao, topico)))
   }
   async function pedirDica() {
     if (!item) return
@@ -115,17 +126,39 @@ export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: M
         ))}
         <label className="edicao">
           <span className="sr-only">Edição</span>
-          <select value={edicao ?? ''} onChange={(e) => recomecar(areas, e.target.value ? Number(e.target.value) : null)}>
+          <select value={edicao ?? ''} onChange={(e) => recomecar(areas, e.target.value ? Number(e.target.value) : null, topico)}>
             <option value="">Todas as edições</option>
             {[...meta.edicoes_com_texto].reverse().map((ano) => <option key={ano} value={ano}>ENEM {ano}</option>)}
           </select>
         </label>
+        {conteudos.length > 0 && (
+          <label className="edicao">
+            <span className="sr-only">Conteúdo</span>
+            <select value={topico ?? ''} onChange={(e) => recomecar(areas, edicao, e.target.value || null)}>
+              <option value="">Todos os conteúdos</option>
+              {AREAS.filter((a) => conteudos.some((c) => c.area === a)).map((a) => (
+                <optgroup key={a} label={meta.areas[a]}>
+                  {conteudos.filter((c) => c.area === a).map((c) => (
+                    <option key={c.id} value={c.id}>{c.nome} ({c.itens})</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
+      {conteudoAtual && (
+        <p className="conteudo-nota">
+          Treinando <strong>{conteudoAtual.nome}</strong> ({conteudoAtual.disciplina}). As questões vêm de {meta.areas[conteudoAtual.area]};
+          o domínio continua sendo medido por habilidade da Matriz.
+        </p>
+      )}
 
       {!item ? (
         <section className="folha vazio">
           <h2>Você respondeu todas as questões desta seleção.</h2>
-          <p>Escolha outra área ou veja no mapa quais habilidades ainda estão abertas.</p>
+          <p>{topico ? 'Escolha outro conteúdo ou volte para todos.' : 'Escolha outra área ou veja no mapa quais habilidades ainda estão abertas.'}</p>
+          {topico && <button className="btn" onClick={() => recomecar(areas, edicao, null)}>Ver todos os conteúdos</button>}
         </section>
       ) : (
         <div className="treinar-grid">
@@ -134,6 +167,9 @@ export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: M
               <span>Questão {item.numero ?? ''}</span>
               <span>ENEM {item.ano}</span>
               <span>{meta.areas[item.area]}, {item.habilidade === 0 ? 'habilidade não informada' : `habilidade ${item.habilidade}`}</span>
+              {(item.topicos ?? []).length > 0 && (
+                <span className="questao-topico">{(item.topicos ?? []).map((t) => catalogo.find((c) => c.id === t)?.nome).filter(Boolean).join(' · ')}</span>
+              )}
             </header>
             <Enunciado item={item} />
             <ol className="alternativas">

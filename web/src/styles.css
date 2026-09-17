@@ -221,6 +221,9 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .conta-painel .google { margin-bottom: 0.75rem; }
 .conta-painel .ou { text-align: center; color: var(--tinta-2); font-size: 0.85rem; margin: 0.25rem 0 0; }
 
+.conteudo-nota { margin: 0 0 1rem; color: var(--tinta-2); max-width: 75ch; }
+.questao-topico { color: var(--azul); }
+
 /* devolutiva pela Matriz */
 .devolutiva { margin: 2rem 0 1rem; }
 .devolutiva .mapa-head { align-items: center; margin-bottom: 0.5rem; }
@@ -229,6 +232,9 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .retorno-bloco h3 { font-family: var(--display); font-weight: 600; font-size: 1rem; margin: 0; }
 .dev-lista { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.55rem; }
 .dev-lista small { display: block; color: var(--tinta-2); }
+.dev-conteudos { margin: 1rem 0 1.5rem; }
+.dev-conteudos h3 { font-family: var(--display); font-weight: 600; font-size: 1rem; margin: 0 0 0.25rem; }
+.dev-conteudos small { display: block; color: var(--tinta-2); }
 .dev-comp { border: 1px solid var(--linha); border-radius: var(--raio-folha); padding: 0.75rem 1rem; margin-bottom: 0.75rem; }
 .dev-comp summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 0.5rem 0.9rem; align-items: center; }
 .dev-comp-titulo { font-weight: 700; }

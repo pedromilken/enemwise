@@ -89,3 +89,33 @@ def test_bloom_sugere_pelo_verbo_e_marca_para_revisao(tmp_path):
     out = json.loads((tmp_path / "habilidades.json").read_text(encoding="utf-8"))
     assert out["MT-H1"] == {"descricao": "Reconhecer diferentes significados dos números", "bloom": "Conhecimento", "bloom_sugerido": True}
     assert out["CH-H9"]["bloom_sugerido"] is False and rel["sem_sugestao"] == []
+
+
+def test_conteudos_classifica_por_termo_e_habilidade():
+    from enemwise_pipeline import conteudos as con
+    assert "geometria-analitica" in con.classificar(
+        "No plano cartesiano, a equação da reta que passa pelos pontos A e B é", "MT", 22)
+    assert "geometria-espacial" in con.classificar(
+        "Um reservatório em forma de cilindro tem volume de 500 litros e altura de 2 m", "MT", 12)
+    assert "genetica" in con.classificar(
+        "O heredograma mostra a herança de um gene recessivo ligado ao cromossomo X", "CN", 13)
+    assert "cartografia" in con.classificar(
+        "A projeção cartográfica do mapa distorce as áreas em altas latitudes", "CH", 6)
+    # texto sem termo característico fica sem tópico, em vez de receber palpite
+    assert con.classificar("Considere a situação descrita a seguir e responda.", "MT", 3) == []
+    # tema específico só entra com termo forte
+    assert "geometria-analitica" not in con.classificar("O gráfico mostra as coordenadas do eixo x", "MT", 20)
+
+
+def test_conteudos_catalogo_e_cobertura():
+    import pandas as pd
+    from enemwise_pipeline import conteudos as con
+    cat = con.catalogo()
+    assert len(cat) >= 40 and {c["area"] for c in cat} == {"CN", "CH", "LC", "MT"}
+    assert len({c["id"] for c in cat}) == len(cat)  # ids únicos
+    itens = pd.DataFrame({
+        "area": ["MT", "MT"], "habilidade": [12, 3],
+        "enunciado": ["O volume do cilindro em litros", "Considere o texto"], "alternativas": ["", ""]})
+    r = con.rotular(itens)
+    assert list(r["topicos"].apply(bool)) == [True, False]
+    assert con.cobertura(r).iloc[0]["cobertura"] == 0.5

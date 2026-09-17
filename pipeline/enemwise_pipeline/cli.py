@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import avaliacao, benchmark, bloom, dataset, datasheet, inep, leitura, link_text, longo, merge as mrg, synth
+from . import avaliacao, benchmark, bloom, conteudos, dataset, datasheet, inep, leitura, link_text, longo, merge as mrg, synth
 from .edicao import build_edition
 
 
@@ -113,6 +113,11 @@ def main(argv: list[str] | None = None) -> None:
     av.add_argument("--exportacoes", required=True, help="pasta com os .json exportados")
     av.add_argument("--incluir-dica", action="store_true")
     av.add_argument("--saida")
+
+    ct = sub.add_parser("conteudos", help="audita a classificação por conteúdo programático das questões")
+    ct.add_argument("--entrada", required=True, help="pasta do batch (com <ano>/items_full.json) ou pasta data do app")
+    ct.add_argument("--topico", help="mostra exemplos de um tópico (id do catálogo)")
+    ct.add_argument("--amostra", type=int, default=5)
 
     bl = sub.add_parser("bloom", help="CSV (chave, descricao[, bloom]) -> habilidades.json com nível sugerido")
     bl.add_argument("--entrada", required=True)
@@ -225,6 +230,27 @@ def main(argv: list[str] | None = None) -> None:
         rel = avaliacao.avaliar(avaliacao.carregar_exportacoes(args.exportacoes), excluir_dica=not args.incluir_dica)
         texto = json.dumps(rel, ensure_ascii=False, indent=2, default=float)
         Path(args.saida).write_text(texto, encoding="utf-8") if args.saida else print(texto)
+    elif args.cmd == "conteudos":
+        raiz = Path(args.entrada)
+        arqs = sorted(raiz.rglob("items_full.json")) or sorted((raiz / "items").glob("*.json"))
+        if not arqs:
+            raise SystemExit(f"Nenhum items_full.json nem items/*.json em {raiz}")
+        itens = pd.concat([pd.read_json(a) for a in arqs], ignore_index=True)
+        itens = itens[itens.get("enunciado", pd.Series(dtype=object)).notna()]
+        itens["habilidade"] = pd.to_numeric(itens.get("habilidade"), errors="coerce")
+        r = itens if "topicos" in itens else conteudos.rotular(itens)
+        print(conteudos.cobertura(r).to_string(index=False))
+        nomes = {t["id"]: t["nome"] for t in conteudos.catalogo()}
+        cont = pd.Series([t for lst in r["topicos"] for t in lst]).value_counts()
+        print("\nQuestões por conteúdo:")
+        for k, v in cont.items():
+            print(f"  {nomes.get(k, k)}: {v}")
+        if args.topico:
+            sel = r[r["topicos"].apply(lambda l: args.topico in l)]
+            print(f"\nExemplos de {nomes.get(args.topico, args.topico)} ({len(sel)} questões):")
+            for _, it in sel.head(args.amostra).iterrows():
+                print(f"  ENEM {it['ano']} q{it.get('numero')}: {str(it['enunciado'])[:150]}")
+
     elif args.cmd == "bloom":
         print(json.dumps(bloom.arquivo(args.entrada, args.saida), ensure_ascii=False, indent=2))
     elif args.cmd == "batch":

@@ -200,3 +200,39 @@ describe('mensagens de erro do login', () => {
     expect(mensagemErro(new Error('algo inesperado'))).toBe('algo inesperado')
   })
 })
+
+import { disponiveis, MIN_TENTATIVAS_CONTEUDO, porConteudo } from './conteudo'
+
+describe('desempenho por conteúdo programático', () => {
+  const CAT = [
+    { id: 'geometria-espacial', nome: 'Geometria espacial e volumes', area: 'MT' as const, disciplina: 'Matemática' },
+    { id: 'probabilidade', nome: 'Probabilidade', area: 'MT' as const, disciplina: 'Matemática' },
+  ]
+  const its = [
+    { ...item('1', 8, 2.5), topicos: ['geometria-espacial'] },
+    { ...item('2', 8, 2.5), topicos: ['geometria-espacial'] },
+    { ...item('3', 8, 2.5), topicos: ['geometria-espacial'] },
+    { ...item('4', 8, 2.5), topicos: ['geometria-espacial', 'probabilidade'] },
+    { ...item('5', 28, 2.5), topicos: [] },
+  ]
+  const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+
+  it('agrega por tópico, marca a habilidade tocada e ignora questão sem tópico', () => {
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its) s = record(s, bank, it, 'A', false)
+    const r = porConteudo(s, bank, CAT)
+    const ge = r.find((c) => c.id === 'geometria-espacial')!
+    expect(ge.n).toBe(4)
+    expect(ge.acertos).toBe(4)
+    expect(ge.habilidades).toEqual([8])
+    expect(ge.desempenho).toBe('acima do esperado')
+    expect(r.find((c) => c.id === 'probabilidade')!.desempenho).toBe('poucas tentativas')
+    expect(MIN_TENTATIVAS_CONTEUDO).toBeGreaterThan(1)
+  })
+
+  it('lista os conteúdos com questões na área selecionada, com contagem', () => {
+    const d = disponiveis(bank, CAT, ['MT'])
+    expect(d.map((c) => [c.id, c.itens])).toEqual([['geometria-espacial', 4], ['probabilidade', 1]])
+    expect(disponiveis(bank, CAT, ['LC'])).toEqual([])
+  })
+})

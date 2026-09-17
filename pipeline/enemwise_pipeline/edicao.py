@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import audit, items as itm, link_text, priors as pri, responses
+from . import audit, conteudos as con, items as itm, link_text, priors as pri, responses
 
 AREAS_BRUTAS = ("CN", "CH", "MT")
 
@@ -61,6 +61,8 @@ def build_edition(ano: int, itens: Path, microdados: Path | None, out: Path,
             lambda i: [None if pd.isna(v) else float(v) for v in pb.loc[i]] if i in pb.index else None)
     if not links.empty:
         full = full.merge(links, on="co_item", how="left")
+    if "enunciado" in full:
+        full = con.rotular(full)  # conteúdos programáticos a partir do texto da questão
 
     auditoria = audit.alignment_audit(counts, canon, booklets, ano) if not counts.empty else []
     relatorio = {

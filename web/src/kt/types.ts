@@ -13,6 +13,7 @@ export interface Item {
   gabarito: string
   p_banda?: (number | null)[]
   numero?: number
+  topicos?: string[]
   enunciado?: string
   alternativas?: string[]
   descricao?: string[]
@@ -33,6 +34,14 @@ export interface SkillPrior {
   n_edicoes?: number
 }
 
+/** Conteúdo programático (geometria analítica, genética...), do catálogo gerado no pipeline. */
+export interface Conteudo {
+  id: string
+  nome: string
+  area: Area
+  disciplina: string
+}
+
 export interface Meta {
   gerado_em: string
   sintetico: boolean
@@ -42,6 +51,8 @@ export interface Meta {
   edicoes: number[]
   edicoes_com_texto: number[]
   n_itens_com_texto: number
+  conteudos?: Conteudo[]
+  cobertura_conteudos?: { area: Area; itens: number; com_topico: number; cobertura: number }[]
   auditoria_reprovada: string[]
   fonte: string
 }

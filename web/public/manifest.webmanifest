@@ -1,0 +1,12 @@
+{
+  "name": "ENEMWise",
+  "short_name": "ENEMWise",
+  "description": "Treino adaptativo para o Enem com knowledge tracing sobre os microdados do INEP.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#E9EDE7",
+  "theme_color": "#1B2140",
+  "lang": "pt-BR",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

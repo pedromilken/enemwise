@@ -1,5 +1,5 @@
 {
-  "gerado_em": "2026-09-17T07:15:41+00:00",
+  "gerado_em": "2026-09-17T21:29:35+00:00",
   "sintetico": false,
   "D": 1.7,
   "areas": {
@@ -1599,6 +1599,310 @@
       "aceito": true,
       "fonte": "maritaca_2024.jsonl",
       "ano": 2024
+    }
+  ],
+  "conteudos": [
+    {
+      "id": "numeros",
+      "nome": "Números e operações",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "financeira",
+      "nome": "Porcentagem e matemática financeira",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "proporcao",
+      "nome": "Razão, proporção e grandezas",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "sequencias",
+      "nome": "Sequências e progressões",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "funcoes",
+      "nome": "Funções e gráficos",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "equacoes",
+      "nome": "Equações, inequações e sistemas",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "geometria-plana",
+      "nome": "Geometria plana",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "geometria-espacial",
+      "nome": "Geometria espacial e volumes",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "geometria-analitica",
+      "nome": "Geometria analítica",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "trigonometria",
+      "nome": "Trigonometria",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "estatistica",
+      "nome": "Estatística e leitura de dados",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "probabilidade",
+      "nome": "Probabilidade",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "contagem",
+      "nome": "Análise combinatória",
+      "area": "MT",
+      "disciplina": "Matemática"
+    },
+    {
+      "id": "interpretacao",
+      "nome": "Leitura e interpretação de texto",
+      "area": "LC",
+      "disciplina": "Língua Portuguesa"
+    },
+    {
+      "id": "generos-midias",
+      "nome": "Gêneros textuais e mídias",
+      "area": "LC",
+      "disciplina": "Língua Portuguesa"
+    },
+    {
+      "id": "variacao",
+      "nome": "Variação linguística e norma",
+      "area": "LC",
+      "disciplina": "Língua Portuguesa"
+    },
+    {
+      "id": "gramatica",
+      "nome": "Gramática em uso",
+      "area": "LC",
+      "disciplina": "Língua Portuguesa"
+    },
+    {
+      "id": "figuras-funcoes",
+      "nome": "Figuras e funções da linguagem",
+      "area": "LC",
+      "disciplina": "Língua Portuguesa"
+    },
+    {
+      "id": "literatura",
+      "nome": "Literatura",
+      "area": "LC",
+      "disciplina": "Literatura"
+    },
+    {
+      "id": "lem",
+      "nome": "Língua estrangeira (inglês e espanhol)",
+      "area": "LC",
+      "disciplina": "Língua Estrangeira"
+    },
+    {
+      "id": "artes",
+      "nome": "Arte e produção cultural",
+      "area": "LC",
+      "disciplina": "Arte"
+    },
+    {
+      "id": "corporais",
+      "nome": "Práticas corporais e esporte",
+      "area": "LC",
+      "disciplina": "Educação Física"
+    },
+    {
+      "id": "mecanica",
+      "nome": "Mecânica",
+      "area": "CN",
+      "disciplina": "Física"
+    },
+    {
+      "id": "termologia",
+      "nome": "Calor e termodinâmica",
+      "area": "CN",
+      "disciplina": "Física"
+    },
+    {
+      "id": "ondas-optica",
+      "nome": "Ondas, óptica e radiação",
+      "area": "CN",
+      "disciplina": "Física"
+    },
+    {
+      "id": "eletricidade",
+      "nome": "Eletricidade e magnetismo",
+      "area": "CN",
+      "disciplina": "Física"
+    },
+    {
+      "id": "materia-atomo",
+      "nome": "Estrutura da matéria e tabela periódica",
+      "area": "CN",
+      "disciplina": "Química"
+    },
+    {
+      "id": "reacoes",
+      "nome": "Reações químicas e estequiometria",
+      "area": "CN",
+      "disciplina": "Química"
+    },
+    {
+      "id": "solucoes",
+      "nome": "Soluções, ácidos e bases",
+      "area": "CN",
+      "disciplina": "Química"
+    },
+    {
+      "id": "energia-quimica",
+      "nome": "Termoquímica, eletroquímica e radioatividade",
+      "area": "CN",
+      "disciplina": "Química"
+    },
+    {
+      "id": "organica",
+      "nome": "Química orgânica e polímeros",
+      "area": "CN",
+      "disciplina": "Química"
+    },
+    {
+      "id": "celula",
+      "nome": "Célula, metabolismo e biotecnologia",
+      "area": "CN",
+      "disciplina": "Biologia"
+    },
+    {
+      "id": "genetica",
+      "nome": "Genética e hereditariedade",
+      "area": "CN",
+      "disciplina": "Biologia"
+    },
+    {
+      "id": "evolucao",
+      "nome": "Evolução e diversidade",
+      "area": "CN",
+      "disciplina": "Biologia"
+    },
+    {
+      "id": "ecologia",
+      "nome": "Ecologia e ambiente",
+      "area": "CN",
+      "disciplina": "Biologia"
+    },
+    {
+      "id": "saude",
+      "nome": "Corpo humano, saúde e doenças",
+      "area": "CN",
+      "disciplina": "Biologia"
+    },
+    {
+      "id": "brasil-colonia-imperio",
+      "nome": "Brasil: colônia e império",
+      "area": "CH",
+      "disciplina": "História"
+    },
+    {
+      "id": "brasil-republica",
+      "nome": "Brasil republicano",
+      "area": "CH",
+      "disciplina": "História"
+    },
+    {
+      "id": "historia-geral",
+      "nome": "História geral",
+      "area": "CH",
+      "disciplina": "História"
+    },
+    {
+      "id": "cidadania",
+      "nome": "Cidadania, direitos e movimentos sociais",
+      "area": "CH",
+      "disciplina": "História e Sociologia"
+    },
+    {
+      "id": "cultura",
+      "nome": "Cultura, identidade e patrimônio",
+      "area": "CH",
+      "disciplina": "História e Sociologia"
+    },
+    {
+      "id": "geografia-fisica",
+      "nome": "Geografia física e questões ambientais",
+      "area": "CH",
+      "disciplina": "Geografia"
+    },
+    {
+      "id": "geografia-urbana",
+      "nome": "População, cidades e migrações",
+      "area": "CH",
+      "disciplina": "Geografia"
+    },
+    {
+      "id": "geografia-economica",
+      "nome": "Economia, indústria e agricultura",
+      "area": "CH",
+      "disciplina": "Geografia"
+    },
+    {
+      "id": "cartografia",
+      "nome": "Cartografia e representação do espaço",
+      "area": "CH",
+      "disciplina": "Geografia"
+    },
+    {
+      "id": "filosofia-sociologia",
+      "nome": "Filosofia e sociologia",
+      "area": "CH",
+      "disciplina": "Filosofia e Sociologia"
+    }
+  ],
+  "cobertura_conteudos": [
+    {
+      "area": "CH",
+      "itens": 476,
+      "com_topico": 380,
+      "cobertura": 0.798
+    },
+    {
+      "area": "CN",
+      "itens": 354,
+      "com_topico": 286,
+      "cobertura": 0.808
+    },
+    {
+      "area": "LC",
+      "itens": 414,
+      "com_topico": 332,
+      "cobertura": 0.802
+    },
+    {
+      "area": "MT",
+      "itens": 303,
+      "com_topico": 209,
+      "cobertura": 0.69
     }
   ],
   "diagnostico_monotonia": 0.9919354838709677,

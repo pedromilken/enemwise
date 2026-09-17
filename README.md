@@ -51,6 +51,7 @@ da prova sem precisar supor qual foi usada. O relatório de casamento sai em `me
 ## Login e devolutiva pela Matriz
 
 - **Login opcional** (Supabase) com Google, e-mail e senha, ou link no e-mail, com o progresso somado entre aparelhos. Configuração em [`docs/LOGIN.md`](docs/LOGIN.md).
+- **Conteúdos programáticos:** cada questão é classificada em tópicos de disciplina (geometria analítica, genética, variação linguística), usados no filtro do treino e nos relatórios. Detalhes em [`docs/CONTEUDOS.md`](docs/CONTEUDOS.md).
 - **Devolutiva pela Matriz de Referência do Enem:** pontos fortes e a desenvolver por habilidade, desempenho acima ou abaixo do esperado por competência, alerta de concepção equivocada (erros repetidos com certeza) e versão para imprimir. As 120 habilidades e 30 competências estão em `web/src/data/matriz.json`.
 
 ## Dataset de Knowledge Tracing
@@ -95,6 +96,8 @@ enemwise merge --entrada out --web ../web/public/data
 - Os JSON gerados são **agregados por faixa**, sem registro individual.
 
 ## Publicar
+
+Endereço, Vercel, domínio próprio e uso em celular: [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 1. Crie o repositório e envie o código para `main`.
 2. Em *Settings → Pages*, escolha **GitHub Actions** como fonte.

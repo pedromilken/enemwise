@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Bank } from '../kt/engine'
 import { destaques, type EvidenciaHabilidade, evidencias, MIN_TENTATIVAS, MIN_TENTATIVAS_COMPETENCIA, porCompetencia, type ResumoCompetencia, type Rotulo, semHabilidadeInformada } from '../kt/devolutiva'
+import { MIN_TENTATIVAS_CONTEUDO, porConteudo } from '../kt/conteudo'
 import { type Area, AREAS, type Meta, type StudentState } from '../kt/types'
 import { MATRIZ } from '../matriz'
 
@@ -34,6 +35,7 @@ export function Devolutiva({ bank, meta, student, descricoes }: {
   const d = useMemo(() => destaques(ev), [ev])
   const comps = useMemo(() => porCompetencia(ev), [ev])
   const semH = semHabilidadeInformada(student, bank)
+  const conteudos = useMemo(() => porConteudo(student, bank, meta.conteudos ?? []), [student, bank, meta.conteudos])
   const [area, setArea] = useState<Area | null>(null)
   const [imprimindo, setImprimindo] = useState(false)
   useEffect(() => {
@@ -75,6 +77,32 @@ export function Devolutiva({ bank, meta, student, descricoes }: {
 
       {d.concepcoes.length > 0 && (
         <p className="aviso">Possíveis concepções equivocadas em {d.concepcoes.map((e) => `${e.area} H${e.habilidade}`).join(', ')}: erros repetidos com certeza costumam indicar uma ideia errada, e não falta de prática.</p>
+      )}
+
+      {conteudos.length > 0 && (
+        <div className="dev-conteudos">
+          <h3>Por conteúdo</h3>
+          <p className="fineprint">
+            O que cai na questão, não a competência: geometria analítica, genética, variação linguística. Ordenado do que mais
+            pede estudo para o que já rende.
+          </p>
+          <div className="tabela-rolagem">
+            <table className="tabela-risco">
+              <thead><tr><th>Conteúdo</th><th>Acertos</th><th>Esperado</th><th>Situação</th><th>Habilidades</th></tr></thead>
+              <tbody>{conteudos.map((c) => (
+                <tr key={c.id}>
+                  <td>{c.nome}<small>{c.disciplina === meta.areas[c.area] ? meta.areas[c.area] : `${c.disciplina}, ${meta.areas[c.area]}`}</small></td>
+                  <td>{c.acertos} de {c.n}</td>
+                  <td>{c.esperado.toFixed(1)}</td>
+                  <td>{c.desempenho !== 'poucas tentativas'
+                    ? <span className={CLASSE_COMP[c.desempenho]}>{c.desempenho}</span>
+                    : <span className="dev-num">a partir de {MIN_TENTATIVAS_CONTEUDO} questões</span>}</td>
+                  <td className="dev-num">{c.habilidades.map((h) => `H${h}`).join(', ') || '—'}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       <div className="chips no-print" role="tablist" aria-label="Área">
