@@ -14,3 +14,4 @@ pipeline/out/
 pipeline/textos/
 pipeline/v92.json
 pipeline/.pytest_cache/
+web/.env.local

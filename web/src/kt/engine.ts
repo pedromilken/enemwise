@@ -75,6 +75,15 @@ export function record(s: StudentState, bank: Bank, item: Item, resposta: string
   return { ...s, mastery: { ...s.mastery, [k]: next }, tentativas: [...s.tentativas, t] }
 }
 
+/** Aplica uma tentativa já registrada (de outro aparelho, por exemplo) sem alterar o registro. */
+export function aplicarTentativa(s: StudentState, bank: Bank, t: Attempt): StudentState {
+  const item = bank.byId.get(t.itemId)
+  if (!item) return { ...s, tentativas: [...s.tentativas, t] } // questão fora do banco atual: guarda, não rastreia
+  const k = skillKey(item.area, item.habilidade)
+  const next = update(mastery(s, bank, k), t.correta && !t.usouDica, paramsFor(bank, item, s.banda))
+  return { ...s, mastery: { ...s.mastery, [k]: next }, tentativas: [...s.tentativas, t] }
+}
+
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4
 
 export function setConfianca(s: StudentState, itemId: string, c: Confianca): StudentState {
@@ -109,7 +118,10 @@ export function nextItem(s: StudentState, bank: Bank, filtro: Filtro = () => tru
   if (!skills.length) return null
   const open = skills.filter((x) => x.pL < MASTERY)
   const pool = open.length ? open : skills
-  const pick = rng() < 0.2 ? pool[Math.floor(rng() * pool.length)] : pool.reduce((a, b) => (b.pL < a.pL ? b : a))
+  // habilidade 0 (não informada pelo INEP) junta muitos itens e ficaria sempre "mais frágil": só entra na exploração
+  const comMatriz = pool.filter((x) => !x.k.endsWith('-H0'))
+  const alvo = comMatriz.length ? comMatriz : pool
+  const pick = rng() < 0.2 ? pool[Math.floor(rng() * pool.length)] : alvo.reduce((a, b) => (b.pL < a.pL ? b : a))
   const th = theta(s, bank, pick.k.slice(0, 2) as Area).mean
   return pick.its.reduce((a, b) => (info3pl(th, b.a, b.b, b.c) > info3pl(th, a.a, a.b, a.c) ? b : a))
 }

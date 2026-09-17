@@ -109,3 +109,81 @@ describe('pedagógico', () => {
     expect(itensParaRevisar(turma, bank)[0]?.item.id).toBe('8')
   })
 })
+
+import { classificar, destaques, evidencias, porCompetencia } from './devolutiva'
+import { mesclar, precisaConfirmarVinculo } from './sincronia'
+
+describe('devolutiva pela Matriz', () => {
+  const its = Array.from({ length: 12 }, (_, i) => ({ ...item(String(i + 1), i < 6 ? 16 : 3, 0), area: 'MT' as const }))
+  const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+
+  it('não rotula com menos de 3 tentativas', () => {
+    expect(classificar(2, 2, 0.95, 2)).toBe('poucas tentativas')
+  })
+  it('separa ponto forte e a desenvolver, e agrupa por competência', () => {
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its.slice(0, 6)) s = record(s, bank, it, 'A', false)   // MT-H16: acerta tudo
+    for (const it of its.slice(6)) { s = record(s, bank, it, 'B', false); s = setConfianca(s, it.id, 'certeza') } // MT-H3: erra com certeza
+    const ev = evidencias(s, bank)
+    const h16 = ev.find((e) => e.habilidade === 16)!, h3 = ev.find((e) => e.habilidade === 3)!
+    expect(h16.rotulo).toBe('ponto forte')
+    expect(h3.rotulo).toBe('a desenvolver')
+    expect(h16.competencia).toBe(4)   // H16 pertence à competência 4 de Matemática
+    expect(h3.competencia).toBe(1)
+    const d = destaques(ev)
+    expect(d.concepcoes.map((e) => e.habilidade)).toEqual([3])
+    expect(porCompetencia(ev).map((c) => c.numero)).toEqual([1, 4])
+  })
+})
+
+describe('sincronia', () => {
+  const its = Array.from({ length: 6 }, (_, i) => item(String(i + 1), 1, 0))
+  const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+
+  it('soma tentativas de dois aparelhos e recalcula o domínio', () => {
+    let celular = newStudent(bank, 'a', 1)
+    let pc = newStudent(bank, 'a', 1)
+    celular = record(celular, bank, its[0], 'A', false)
+    pc = record(pc, bank, its[1], 'B', false)
+    pc.tentativas[0].ts = celular.tentativas[0].ts + 1
+    const m = mesclar(bank, celular, pc)!
+    expect(m.tentativas.map((t) => t.itemId)).toEqual(['1', '2'])
+    let esperado = newStudent(bank, 'a', 1)
+    esperado = record(esperado, bank, its[0], 'A', false)
+    esperado = record(esperado, bank, its[1], 'B', false)
+    expect(m.mastery['MT-H1']).toBeCloseTo(esperado.mastery['MT-H1'], 10)
+  })
+  it('mesclar consigo mesmo não duplica', () => {
+    const s = record(newStudent(bank, 'a', 1), bank, its[0], 'A', false)
+    expect(mesclar(bank, s, s)!.tentativas).toHaveLength(1)
+  })
+  it('pede confirmação para progresso sem dono ou de outro usuário', () => {
+    const s = record(newStudent(bank, 'a', 1), bank, its[0], 'A', false)
+    expect(precisaConfirmarVinculo(s, 'u1')).toBe(true)
+    expect(precisaConfirmarVinculo({ ...s, dono: 'u1' }, 'u1')).toBe(false)
+    expect(precisaConfirmarVinculo(newStudent(bank, 'a', 1), 'u1')).toBe(false)
+  })
+})
+
+describe('devolutiva: casos de borda', () => {
+  it('habilidade não informada (0) fica fora e competência recebe desempenho', () => {
+    const its = [...Array.from({ length: 6 }, (_, i) => item(String(i + 1), 3, 1.5)), item('9', 0, 0)]
+    const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its) s = record(s, bank, it, 'A', false)
+    const ev = evidencias(s, bank)
+    expect(ev.some((e) => e.habilidade === 0)).toBe(false)
+    const c = porCompetencia(ev)[0]
+    expect(c.n).toBe(6)
+    expect(c.desempenho).toBe('acima do esperado') // 6 de 6 em questões difíceis
+  })
+})
+
+describe('política com habilidade não informada', () => {
+  it('não escolhe H0 como alvo principal quando há habilidades da Matriz', () => {
+    const its = [item('1', 0, 3), item('2', 0, 3), item('3', 5, -1)]
+    const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+    const s = newStudent(bank, 'a', 1)
+    expect(nextItem(s, bank, () => true, () => 0.9)?.habilidade).toBe(5)
+  })
+})

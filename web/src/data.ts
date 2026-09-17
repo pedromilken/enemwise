@@ -1,4 +1,5 @@
 import type { Item, Meta, SkillPrior } from './kt/types'
+import { descricoesDaMatriz } from './matriz'
 
 const url = (f: string) => `${import.meta.env.BASE_URL}data/${f}`
 
@@ -35,5 +36,8 @@ export async function loadBundle() {
     getJson<SkillPrior[]>('priors.json'),
     getJson<Bruto>('habilidades.json').catch(() => ({}) as Bruto),
   ])
-  return { meta, items: shards.flat(), priors, ...normalizar(descricoes) }
+  // Matriz de Referência embutida; data/habilidades.json, se existir, sobrescreve (ex.: Bloom revisado)
+  const base = descricoesDaMatriz()
+  const extra = normalizar(descricoes)
+  return { meta, items: shards.flat(), priors, descricoes: { ...base.descricoes, ...extra.descricoes }, bloom: { ...base.bloom, ...extra.bloom } }
 }

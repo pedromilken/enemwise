@@ -1,3 +1,4 @@
+import { Devolutiva } from '../components/Devolutiva'
 import { MasteryGrid } from '../components/MasteryGrid'
 import { type Bank, mastery } from '../kt/engine'
 import { META_PADRAO, retorno } from '../kt/feedback'
@@ -34,13 +35,13 @@ export function Mapa({ bank, meta, student, descricoes, bloom, onChange, onReset
           <label className="field">
             <span>Nota-alvo em cada área</span>
             <input type="number" min={300} max={900} step={10} value={student.meta ?? META_PADRAO}
-              onChange={(e) => onChange({ ...student, meta: Number(e.target.value) })} />
+              onChange={(e) => onChange({ ...student, meta: Number(e.target.value), atualizadoEm: Date.now() })} />
           </label>
           <small>Use a nota de corte do curso que você quer. Ela muda o cálculo de risco abaixo.</small>
         </div>
         <div className="retorno-bloco">
           <h2>Como estou indo</h2>
-          <table className="risco">
+          <table className="tabela-risco">
             <tbody>
               {r.comoEstouIndo.map((a) => (
                 <tr key={a.area}>
@@ -70,6 +71,8 @@ export function Mapa({ bank, meta, student, descricoes, bloom, onChange, onReset
           <a className="btn primary" href="#treinar">Treinar agora</a>
         </div>
       </div>
+
+      <Devolutiva bank={bank} meta={meta} student={student} descricoes={descricoes} />
 
       <h2 className="secao">Cartão de habilidades</h2>
       <MasteryGrid areas={meta.areas} descricoes={descricoes}

@@ -77,4 +77,6 @@ export interface StudentState {
   meta?: number // nota-alvo na escala do ENEM (ex.: nota de corte do curso desejado)
   mastery: Record<SkillKey, number>
   tentativas: Attempt[]
+  dono?: string        // id do usuário na nuvem a quem este progresso pertence
+  atualizadoEm?: number // última alteração de nome, faixa ou meta (desempate na sincronia)
 }

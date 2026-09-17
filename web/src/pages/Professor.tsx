@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { MasteryGrid } from '../components/MasteryGrid'
 import { MASTERY } from '../kt/bkt'
 import { type Bank, mastery } from '../kt/engine'
+import { evidencias, porCompetencia } from '../kt/devolutiva'
 import { csvIntervencao, itensParaRevisar, META_PADRAO, risco } from '../kt/feedback'
 import { AREAS, type Meta, nomeHabilidade, type SkillKey, type StudentState } from '../kt/types'
 import { isStudentState, loadTurma, saveTurma } from '../store'
@@ -45,6 +46,19 @@ export function Professor({ bank, meta, descricoes, bloom }: {
   }).sort((a, b) => a.media - b.media), [turma, bank])
   const porK = new Map(resumo.map((r) => [r.k, r]))
   const revisar = useMemo(() => itensParaRevisar(turma, bank), [turma, bank])
+  const competencias = useMemo(() => {
+    const g = new Map<string, { area: string; numero: number; descricao: string; n: number; acertos: number; esperado: number; alunosFracos: number; alunos: number }>()
+    for (const s of turma) {
+      for (const c of porCompetencia(evidencias(s, bank))) {
+        const k = `${c.area}-${c.numero}`
+        const cur = g.get(k) ?? { area: c.area, numero: c.numero, descricao: c.descricao, n: 0, acertos: 0, esperado: 0, alunosFracos: 0, alunos: 0 }
+        cur.n += c.n; cur.acertos += c.acertos; cur.esperado += c.esperado; cur.alunos += 1
+        if (c.aDesenvolver > 0) cur.alunosFracos += 1
+        g.set(k, cur)
+      }
+    }
+    return [...g.values()].sort((a, b) => (a.acertos - a.esperado) / Math.max(a.n, 1) - (b.acertos - b.esperado) / Math.max(b.n, 1))
+  }, [turma, bank])
   const porBloom = useMemo(() => {
     const g = new Map<string, number[]>()
     for (const r of resumo) {
@@ -103,6 +117,19 @@ export function Professor({ bank, meta, descricoes, bloom }: {
           </div>
           <button className="btn" onClick={() => baixarCsv('enemwise-intervencao.csv', csvIntervencao(turma, bank, metaTurma))}>Baixar planilha para contato</button>
           <p className="fineprint">A planilha traz faixa de risco e habilidades prioritárias por estudante, pronta para mala direta.</p>
+
+          <h2 className="secao">Competências da Matriz: onde a turma rende abaixo do esperado</h2>
+          <div className="tabela-rolagem">
+            <table className="prioridades">
+              <thead><tr><th>Competência</th><th>Acertos</th><th>Esperado</th><th>Estudantes com habilidade a desenvolver</th></tr></thead>
+              <tbody>{competencias.slice(0, 10).map((c) => (
+                <tr key={`${c.area}-${c.numero}`}>
+                  <td>{meta.areas[c.area as keyof Meta['areas']]}, competência {c.numero}<small>{c.descricao}</small></td>
+                  <td>{c.acertos} de {c.n}</td><td>{c.esperado.toFixed(1)}</td><td>{c.alunosFracos} de {c.alunos}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
 
           <h2 className="secao">Habilidades que mais pedem aula</h2>
           <table className="prioridades">

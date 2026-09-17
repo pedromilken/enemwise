@@ -178,13 +178,13 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 @media (max-width: 880px) { .retorno { grid-template-columns: 1fr; } }
 .retorno-bloco { display: grid; align-content: start; gap: 0.75rem; padding: 1rem; border: 1px solid var(--linha); border-radius: var(--raio-folha); }
 .retorno-bloco h2 { font-family: var(--display); font-weight: 600; font-size: 1.1rem; margin: 0; }
-.risco { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
-.risco th, .risco td { text-align: left; padding: 0.35rem 0.4rem 0.35rem 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
-.risco th { font-weight: 600; }
+.tabela-risco { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.tabela-risco th, .tabela-risco td { text-align: left; padding: 0.35rem 0.4rem 0.35rem 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
+.tabela-risco th { font-weight: 600; }
 .passos { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.6rem; }
 .passos li small { display: block; }
 .faixa { display: inline-block; padding: 0.05rem 0.55rem; border-radius: 0.7rem; font-size: 0.8rem; font-weight: 600; border: 1.5px solid currentColor; }
-.risco td.nota { white-space: nowrap; }
+.tabela-risco td.nota { white-space: nowrap; }
 .faixa.ok { color: var(--verde); }
 .faixa.limite { color: #9a6d00; }
 .faixa.risco { color: var(--rosa); }
@@ -195,6 +195,46 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .field.inline input { width: 7rem; }
 .tabela-rolagem { overflow-x: auto; margin-bottom: 0.75rem; }
 .prioridades td small, .prioridades th small { display: block; color: var(--tinta-2); font-weight: 400; }
+
+/* conta e sincronia */
+.topo nav { align-items: center; }
+.conta { position: relative; }
+.conta > .chip { display: inline-flex; align-items: center; gap: 0.4rem; }
+.conta-painel { position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 20; width: min(22rem, 90vw); padding: 1rem;
+  background: var(--folha); border: 1px solid var(--linha); border-radius: var(--raio-folha); box-shadow: 0 8px 24px rgb(0 0 0 / 0.12); }
+.conta-painel p { margin: 0; }
+.ponto { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--tinta-2); }
+.ponto.sincronizado { background: var(--verde); }
+.ponto.sincronizando { background: var(--amarelo); }
+.ponto.offline { background: var(--rosa); }
+.vinculo p { margin: 0 0 0.6rem; }
+
+/* devolutiva pela Matriz */
+.devolutiva { margin: 2rem 0 1rem; }
+.devolutiva .mapa-head { align-items: center; margin-bottom: 0.5rem; }
+.dev-destaques { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin-bottom: 1rem; }
+@media (max-width: 880px) { .dev-destaques { grid-template-columns: 1fr; } }
+.retorno-bloco h3 { font-family: var(--display); font-weight: 600; font-size: 1rem; margin: 0; }
+.dev-lista { margin: 0; padding-left: 1.1rem; display: grid; gap: 0.55rem; }
+.dev-lista small { display: block; color: var(--tinta-2); }
+.dev-comp { border: 1px solid var(--linha); border-radius: var(--raio-folha); padding: 0.75rem 1rem; margin-bottom: 0.75rem; }
+.dev-comp summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 0.5rem 0.9rem; align-items: center; }
+.dev-comp-titulo { font-weight: 700; }
+.dev-comp-desc { color: var(--tinta-2); margin: 0.75rem 0; max-width: 75ch; }
+.dev-num { font-size: 0.85rem; color: var(--tinta-2); font-variant-numeric: tabular-nums; }
+.dev-habs { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
+.dev-hab { padding-top: 0.75rem; border-top: 1px dashed var(--linha); }
+.dev-hab p { margin: 0.35rem 0 0; max-width: 75ch; }
+.dev-hab-topo { display: flex; flex-wrap: wrap; gap: 0.4rem 0.8rem; align-items: center; }
+.dev-alerta { display: block; margin-top: 0.3rem; color: var(--rosa); }
+
+@media print {
+  .topo nav, .no-print, .rodape, .aviso, .retorno, .mapa-acoes, .sheet-grid, .secao ~ .sheet-grid { display: none !important; }
+  body { background: #fff; }
+  .folha { border: 0; padding: 0; }
+  .folha::before, .folha::after { display: none; }
+  .dev-comp { break-inside: avoid; }
+}
 
 /* professor */
 .upload { position: relative; overflow: hidden; }

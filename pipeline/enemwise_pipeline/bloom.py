@@ -17,7 +17,7 @@ NIVEIS = ["Conhecimento", "Compreensão", "Aplicação", "Análise", "Síntese",
 VERBOS = {
     "Conhecimento": ["reconhecer", "identificar", "nomear", "listar", "definir", "localizar"],
     "Compreensão": ["compreender", "interpretar", "explicar", "descrever", "associar", "relacionar", "caracterizar", "diferenciar"],
-    "Aplicação": ["aplicar", "utilizar", "usar", "resolver", "calcular", "empregar", "operar"],
+    "Aplicação": ["aplicar", "utilizar", "usar", "resolver", "calcular", "empregar", "operar", "recorrer", "dimensionar"],
     "Análise": ["analisar", "comparar", "confrontar", "inferir", "distinguir", "estabelecer"],
     "Síntese": ["elaborar", "propor", "construir", "planejar", "formular", "organizar"],
     "Avaliação": ["avaliar", "julgar", "criticar", "argumentar", "justificar", "selecionar", "posicionar"],
