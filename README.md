@@ -50,7 +50,7 @@ da prova sem precisar supor qual foi usada. O relatório de casamento sai em `me
 
 ## Login e devolutiva pela Matriz
 
-- **Login opcional por link no e-mail** (Supabase), com o progresso somado entre aparelhos. Configuração em [`docs/LOGIN.md`](docs/LOGIN.md).
+- **Login opcional** (Supabase) com Google, e-mail e senha, ou link no e-mail, com o progresso somado entre aparelhos. Configuração em [`docs/LOGIN.md`](docs/LOGIN.md).
 - **Devolutiva pela Matriz de Referência do Enem:** pontos fortes e a desenvolver por habilidade, desempenho acima ou abaixo do esperado por competência, alerta de concepção equivocada (erros repetidos com certeza) e versão para imprimir. As 120 habilidades e 30 competências estão em `web/src/data/matriz.json`.
 
 ## Dataset de Knowledge Tracing

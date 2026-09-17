@@ -187,3 +187,16 @@ describe('política com habilidade não informada', () => {
     expect(nextItem(s, bank, () => true, () => 0.9)?.habilidade).toBe(5)
   })
 })
+
+import { mensagemErro } from '../nuvem'
+
+describe('mensagens de erro do login', () => {
+  it('traduz os casos comuns e repassa o resto', () => {
+    expect(mensagemErro(new Error('Invalid login credentials'))).toBe('E-mail ou senha incorretos.')
+    expect(mensagemErro(new Error('User already registered'))).toMatch(/Já existe uma conta/)
+    expect(mensagemErro(new Error('Password should be at least 6 characters'))).toBe('A senha precisa ter pelo menos 6 caracteres.')
+    expect(mensagemErro(new Error('Email not confirmed'))).toMatch(/Confirme o e-mail/)
+    expect(mensagemErro(new Error('Unsupported provider: provider is not enabled'))).toMatch(/Google ainda não está ligada/)
+    expect(mensagemErro(new Error('algo inesperado'))).toBe('algo inesperado')
+  })
+})

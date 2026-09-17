@@ -209,6 +209,12 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .ponto.offline { background: var(--rosa); }
 .vinculo p { margin: 0 0 0.6rem; }
 
+.entrar { max-width: 30rem; margin: 2rem auto; }
+.entrar .lede { margin-bottom: 1.25rem; }
+.entrar .stack { max-width: none; }
+.btn.largo { width: 100%; }
+.ou { text-align: center; color: var(--tinta-2); font-size: 0.9rem; margin: 1rem 0; }
+.entrar-links { display: grid; gap: 0.5rem; justify-items: start; margin: 1.25rem 0; }
 .conta-painel .google { margin-bottom: 0.75rem; }
 .conta-painel .ou { text-align: center; color: var(--tinta-2); font-size: 0.85rem; margin: 0.25rem 0 0; }
 

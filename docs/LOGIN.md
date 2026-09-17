@@ -14,16 +14,20 @@ Com o login ligado, o estudante entra por um link enviado ao e-mail (sem senha) 
 
 ---
 
-## Duas formas de entrar
+## Três formas de entrar
 
-| | Entrar com o Google | Link no e-mail |
-|---|---|---|
-| Para o estudante | um toque, sem sair do site | precisa abrir o e-mail e voltar |
-| Fila de turma | sem limite de envio | o envio padrão do Supabase é limitado por hora |
-| Para você configurar | Google Cloud, cerca de 10 minutos | nada além do básico |
-| Quem fica de fora | quem não tem conta Google | ninguém |
+A tela de entrada fica em `#entrar` e reúne as três:
 
-As duas convivem: com o Google ligado, o painel mostra o botão dele em cima e o campo de e-mail logo abaixo.
+| | Continuar com o Google | E-mail e senha | Link no e-mail |
+|---|---|---|---|
+| Para o estudante | um toque | entra sempre igual, sem depender de e-mail | precisa abrir o e-mail e voltar |
+| Fila de turma | sem limite | sem limite, se a confirmação por e-mail estiver desligada | envio padrão do Supabase é limitado por hora |
+| Para você configurar | Google Cloud, cerca de 10 minutos | nada além do básico | nada além do básico |
+| Papel no app | caminho principal | alternativa de sempre | recuperação de senha |
+
+O link no e-mail cobre o "esqueci a senha": o estudante entra pelo link e troca a senha no menu da conta.
+
+**Confirmação de e-mail ao criar conta.** Por padrão o Supabase exige confirmar o e-mail antes da primeira entrada, e isso esbarra no limite de envios. Em **Authentication → Sign In / Providers → Email**, desligue **Confirm email** para a conta valer na hora. O custo é aceitar e-mails não verificados; como o app só guarda progresso de treino, costuma compensar. Com o Google, essa questão não existe.
 
 ---
 

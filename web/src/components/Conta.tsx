@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { googleDisponivel } from '../nuvem'
+import { definirSenha, mensagemErro } from '../nuvem'
 import type { Usuario } from '../nuvem'
 
 export type StatusSync = 'local' | 'sincronizando' | 'sincronizado' | 'offline'
@@ -8,70 +8,51 @@ const ROTULO: Record<StatusSync, string> = {
   local: 'Salvo neste aparelho', sincronizando: 'Salvando…', sincronizado: 'Salvo na sua conta', offline: 'Sem conexão: salvo neste aparelho',
 }
 
-export function Conta({ usuario, status, onEntrar, onEntrarGoogle, onSair, onApagarNuvem }: {
+export function Conta({ usuario, status, onSair, onApagarNuvem }: {
   usuario: Usuario | null
   status: StatusSync
-  onEntrar: (email: string) => Promise<void>
-  onEntrarGoogle: () => Promise<void>
   onSair: (apagarLocal: boolean) => void
   onApagarNuvem: () => void
 }) {
   const [aberto, setAberto] = useState(false)
-  const [email, setEmail] = useState('')
-  const [enviado, setEnviado] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
+  const [trocando, setTrocando] = useState(false)
+  const [senha, setSenha] = useState('')
+  const [msg, setMsg] = useState<string | null>(null)
+
+  if (!usuario) return <a className="chip" href="#entrar">Entrar</a>
 
   return (
     <div className="conta">
       <button className="chip" aria-expanded={aberto} onClick={() => setAberto(!aberto)}>
-        {usuario ? <span className={`ponto ${status}`} aria-hidden="true" /> : null}
-        {usuario ? usuario.email.split('@')[0] : 'Entrar'}
+        <span className={`ponto ${status}`} aria-hidden="true" />
+        {usuario.email.split('@')[0]}
       </button>
       {aberto && (
         <div className="conta-painel" role="dialog" aria-label="Conta">
-          {!usuario ? (
-            enviado ? (
-              <p>Enviamos um link para <strong>{email}</strong>. Abra o e-mail neste aparelho e clique no link para entrar.</p>
-            ) : (
-              <>
-              {googleDisponivel && (
-                <div className="stack google">
-                  <button className="btn primary" onClick={async () => {
-                    setErro(null)
-                    try { await onEntrarGoogle() } catch (x) { setErro(x instanceof Error ? x.message : 'Não foi possível entrar com o Google.') }
-                  }}>Entrar com o Google</button>
-                  <small>Um toque, sem esperar e-mail.</small>
-                  <p className="ou">ou use seu e-mail</p>
-                </div>
-              )}
+          <div className="stack">
+            <p><strong>{usuario.email}</strong><br /><small>{ROTULO[status]}</small></p>
+            {trocando ? (
               <form className="stack" onSubmit={async (e) => {
-                e.preventDefault(); setErro(null)
-                try { await onEntrar(email.trim()); setEnviado(true) } catch (x) { setErro(x instanceof Error ? x.message : 'Não foi possível enviar o link.') }
+                e.preventDefault(); setMsg(null)
+                try { await definirSenha(senha); setMsg('Senha atualizada.'); setTrocando(false); setSenha('') }
+                catch (x) { setMsg(mensagemErro(x)) }
               }}>
-                <label className="field"><span>Seu e-mail</span>
-                  <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <label className="field"><span>Nova senha</span>
+                  <input type="password" required minLength={6} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} />
                 </label>
-                <button className={googleDisponivel ? "btn" : "btn primary"} type="submit">Receber link de acesso</button>
-                {erro && <p role="alert" className="erro">{erro}</p>}
-                <small>
-                  Sem senha: você entra pelo link enviado ao e-mail. Guardamos só o e-mail e o seu progresso de treino, para você
-                  continuar em qualquer aparelho. Nada é compartilhado, e você pode apagar tudo quando quiser.
-                  Menores de 18 anos devem usar com autorização de um responsável.
-                </small>
+                <button className="btn" type="submit">Salvar senha</button>
               </form>
-              </>
-            )
-          ) : (
-            <div className="stack">
-              <p><strong>{usuario.email}</strong><br /><small>{ROTULO[status]}</small></p>
-              <button className="btn" onClick={() => { onSair(false); setAberto(false) }}>Sair</button>
-              <button className="btn" onClick={() => { onSair(true); setAberto(false) }}>Sair e apagar deste aparelho</button>
-              <small>Use a segunda opção em computadores compartilhados, como os da escola.</small>
-              <button className="link" onClick={() => { if (confirm('Apagar seu progresso da nuvem? O que está neste aparelho continua.')) onApagarNuvem() }}>
-                Apagar meus dados da nuvem
-              </button>
-            </div>
-          )}
+            ) : (
+              <button className="btn" onClick={() => setTrocando(true)}>Trocar senha</button>
+            )}
+            {msg && <p role="status"><small>{msg}</small></p>}
+            <button className="btn" onClick={() => { onSair(false); setAberto(false) }}>Sair</button>
+            <button className="btn" onClick={() => { onSair(true); setAberto(false) }}>Sair e apagar deste aparelho</button>
+            <small>Use a segunda opção em computadores compartilhados, como os da escola.</small>
+            <button className="link" onClick={() => { if (confirm('Apagar seu progresso da nuvem? O que está neste aparelho continua.')) onApagarNuvem() }}>
+              Apagar meus dados da nuvem
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -6,18 +6,18 @@ import { setD } from './kt/irt'
 import { mesclar, precisaConfirmarVinculo } from './kt/sincronia'
 import type { StudentState } from './kt/types'
 import {
-  aoMudarSessao, apagarProgressoNuvem, baixarProgresso, entrarComEmail, entrarComGoogle, enviarProgresso, nuvemDisponivel, sair,
-  type Usuario,
+  aoMudarSessao, apagarProgressoNuvem, baixarProgresso, enviarProgresso, nuvemDisponivel, sair, type Usuario,
 } from './nuvem'
+import { Entrar } from './pages/Entrar'
 import { Inicio } from './pages/Inicio'
 import { Mapa } from './pages/Mapa'
 import { Professor } from './pages/Professor'
 import { Treinar } from './pages/Treinar'
 import { loadStudent, saveStudent } from './store'
 
-type Tab = 'treinar' | 'mapa' | 'professor'
+type Tab = 'treinar' | 'mapa' | 'professor' | 'entrar'
 const TABS: [Tab, string][] = [['treinar', 'Treinar'], ['mapa', 'Meu retorno'], ['professor', 'Professor']]
-const fromHash = (): Tab => (TABS.find(([t]) => `#${t}` === location.hash)?.[0] ?? 'treinar')
+const fromHash = (): Tab => (location.hash === '#entrar' ? 'entrar' : TABS.find(([t]) => `#${t}` === location.hash)?.[0] ?? 'treinar')
 
 export default function App() {
   const [bundle, setBundle] = useState<Awaited<ReturnType<typeof loadBundle>> | null>(null)
@@ -99,7 +99,7 @@ export default function App() {
             <a key={t} href={`#${t}`} aria-current={tab === t ? 'page' : undefined}>{label}</a>
           ))}
           {nuvemDisponivel && (
-            <Conta usuario={usuario} status={status} onEntrar={entrarComEmail} onEntrarGoogle={entrarComGoogle}
+            <Conta usuario={usuario} status={status}
               onSair={async (apagarLocal) => {
                 await sair()
                 if (apagarLocal) salvarLocal(null)
@@ -122,10 +122,11 @@ export default function App() {
         <p className="aviso">Demonstração com questões sintéticas. Gere o banco real rodando o pipeline sobre os microdados do INEP.</p>
       )}
       <main>
+        {tab === 'entrar' && <Entrar onPronto={() => { location.hash = '#treinar' }} />}
         {erro && <section className="folha"><h2>O banco de questões não carregou.</h2><p>{erro}</p></section>}
         {!erro && (!bundle || !bank) && <p className="carregando">Carregando banco de questões…</p>}
         {bundle && bank && tab === 'professor' && <Professor bank={bank} meta={bundle.meta} descricoes={bundle.descricoes} bloom={bundle.bloom} />}
-        {bundle && bank && tab !== 'professor' && !student && !pendente && (
+        {bundle && bank && tab !== 'professor' && tab !== 'entrar' && !student && !pendente && (
           <Inicio bandas={bundle.meta.bandas} onStart={(nome, banda) => update({ ...newStudent(bank, nome, banda), atualizadoEm: Date.now() })} />
         )}
         {bundle && bank && student && tab === 'treinar' && <Treinar bank={bank} meta={bundle.meta} student={student} onChange={update} />}
