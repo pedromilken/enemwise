@@ -19,9 +19,12 @@ export function mesclar(bank: Bank, local: StudentState | null, remoto: StudentS
     todas.set(chave(t), atual ? { ...atual, confianca: atual.confianca ?? t.confianca } : t)
   }
   const ordenadas = [...todas.values()].sort((a, b) => a.ts - b.ts)
+  const historico = new Map<string, NonNullable<StudentState['historico']>[number]>()
+  for (const h of [...(remoto.historico ?? []), ...(local.historico ?? [])]) historico.set(h.id, h)
   let s: StudentState = {
     ...newStudent(bank, base.nome, base.banda),
     meta: base.meta, dono: remoto.dono ?? local.dono, atualizadoEm: base.atualizadoEm,
+    historico: [...historico.values()].sort((a, b) => a.data.localeCompare(b.data)),
   }
   for (const t of ordenadas) s = aplicarTentativa(s, bank, t)
   return s

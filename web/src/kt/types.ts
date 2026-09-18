@@ -83,11 +83,20 @@ export const nomeHabilidade = (h: number | string) => (Number(h) === 0 ? 'habili
 export type SkillKey = `${Area}-H${number}`
 export const skillKey = (area: Area, h: number): SkillKey => `${area}-H${h}`
 
+/** Resultado externo (Enem anterior, simulado) que o estudante registra para acompanhar a evolução. */
+export interface ResultadoAnterior {
+  id: string
+  data: string      // AAAA-MM-DD
+  origem: string    // "ENEM 2025", "Simulado da escola"...
+  notas: Partial<Record<Area, number>>
+}
+
 export interface StudentState {
   versao: 1
   nome: string
   banda: number
   meta?: number // nota-alvo na escala do ENEM (ex.: nota de corte do curso desejado)
+  historico?: ResultadoAnterior[]
   mastery: Record<SkillKey, number>
   tentativas: Attempt[]
   dono?: string        // id do usuário na nuvem a quem este progresso pertence

@@ -1,4 +1,5 @@
 import { Devolutiva } from '../components/Devolutiva'
+import { Evolucao } from '../components/Evolucao'
 import { MasteryGrid } from '../components/MasteryGrid'
 import { type Bank, mastery } from '../kt/engine'
 import { META_PADRAO, retorno } from '../kt/feedback'
@@ -75,6 +76,11 @@ export function Mapa({ bank, meta, student, descricoes, bloom, onChange, onReset
           <a className="btn primary" href="#treinar">Treinar agora</a>
         </div>
       </div>
+
+      <section className="evolucao-secao" aria-labelledby="ev-titulo">
+        <h2 id="ev-titulo" className="secao">Evolução</h2>
+        <Evolucao bank={bank} meta={meta} student={student} onChange={onChange} />
+      </section>
 
       <Devolutiva bank={bank} meta={meta} student={student} descricoes={descricoes} />
 

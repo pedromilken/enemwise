@@ -7,6 +7,7 @@ import { destaques, evidencias, porCompetencia } from './kt/devolutiva'
 import type { Bank } from './kt/engine'
 import { nivelDe } from './kt/engine'
 import { META_PADRAO, risco } from './kt/feedback'
+import { evolucao } from './kt/evolucao'
 import { AREAS, type Meta, type StudentState } from './kt/types'
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!))
@@ -43,6 +44,12 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;
 <table><tr><th>Área</th><th>Questões</th><th>Nota estimada</th><th>Situação</th></tr>
 ${riscos.map((r) => `<tr><td>${esc(meta.areas[r.area])}</td><td>${r.n}</td><td>${r.n ? `${r.nota} ± ${r.notaSd}` : '—'}</td><td><span class="tag ${r.faixa === 'meta provável' ? 'ok' : r.faixa === 'abaixo da meta provável' ? 'risco' : 'neutro'}">${esc(r.faixa)}</span></td></tr>`).join('')}
 </table>
+
+${(s.historico ?? []).length ? `<h2>Evolução em relação a resultados anteriores</h2>
+<table><tr><th>Área</th><th>Último resultado registrado</th><th>Estimativa atual</th><th>Variação</th></tr>
+${evolucao(s, bank).filter((a) => a.pontos.length).map((a) => `<tr><td>${esc(meta.areas[a.area])}</td><td>${a.ultimo ? `${a.ultimo.nota} <small>(${esc(a.ultimo.origem)}, ${a.ultimo.data.split('-').reverse().join('/')})</small>` : '—'}</td><td>${a.estimativa ?? '<small>poucas questões</small>'}</td><td>${a.variacao === null ? '—' : `<span class="tag ${a.variacao >= 0 ? 'ok' : 'risco'}">${a.variacao > 0 ? '+' : ''}${a.variacao}</span>`}</td></tr>`).join('')}
+</table>
+<p class="muted"><small>Registros: ${(s.historico ?? []).map((h) => `${h.data.split('-').reverse().join('/')} ${esc(h.origem)} (${AREAS.filter((x) => h.notas[x] !== undefined).map((x) => `${x} ${h.notas[x]}`).join(', ')})`).join('; ')}.</small></p>` : ''}
 
 <h2>Devolutiva pela Matriz de Referência</h2>
 <div class="grid"><div><h3>Pontos fortes</h3>${lista(d.fortes)}</div><div><h3>Pontos a desenvolver</h3>${lista(d.fracos)}</div></div>

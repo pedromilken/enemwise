@@ -266,3 +266,31 @@ describe('dicas em níveis: crédito parcial', () => {
     expect(comDica2.mastery['MT-H3']).toBeGreaterThan(antigo.mastery['MT-H3'])
   })
 })
+
+import { evolucao, novoResultado } from './evolucao'
+
+describe('evolução com resultados anteriores', () => {
+  const its = Array.from({ length: 8 }, (_, i) => item(String(i + 1), 3, 0))
+  const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+  it('compara a estimativa atual com o último registro e ordena por data', () => {
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its) s = record(s, bank, it, 'A', 0)
+    s = { ...s, historico: [novoResultado('2026-03-10', 'ENEM 2025', { MT: 520 }), novoResultado('2025-11-05', 'Simulado', { MT: 480, LC: 600 })] }
+    const mt = evolucao(s, bank).find((a) => a.area === 'MT')!
+    expect(mt.pontos.map((p) => p.nota)).toEqual([480, 520])
+    expect(mt.ultimo?.origem).toBe('ENEM 2025')
+    expect(mt.estimativa).not.toBeNull()
+    expect(mt.variacao).toBe(mt.estimativa! - 520)
+    const lc = evolucao(s, bank).find((a) => a.area === 'LC')!
+    expect(lc.estimativa).toBeNull()   // sem questões de LC, não há estimativa
+    expect(lc.variacao).toBeNull()
+  })
+  it('descarta notas fora da escala e a sincronia une históricos', () => {
+    const r = novoResultado('2026-01-01', '  ', { MT: 1500, CN: 610.4 })
+    expect(r.notas).toEqual({ CN: 610 })
+    expect(r.origem).toBe('Resultado anterior')
+    const a = { ...newStudent(bank, 'a', 1), historico: [r] }
+    const b = { ...newStudent(bank, 'a', 1), historico: [novoResultado('2025-06-01', 'Simulado', { LC: 500 })] }
+    expect(mesclar(bank, a, b)!.historico!.map((h) => h.data)).toEqual(['2025-06-01', '2026-01-01'])
+  })
+})

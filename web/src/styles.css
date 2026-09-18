@@ -229,6 +229,17 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .banco-trecho { color: var(--tinta-2); max-width: 32ch; }
 tr.feita.ok td:first-child { border-left: 3px solid var(--verde); }
 tr.feita.erro td:first-child { border-left: 3px solid var(--rosa); }
+.evolucao-secao { margin: 2rem 0 0; }
+.evolucao { margin-top: 0; }
+.evolucao h3 { font-family: var(--display); font-weight: 600; font-size: 1rem; margin: 0 0 0.25rem; }
+.evolucao .tabela-risco { margin: 0.5rem 0 0.75rem; }
+.evolucao-svg { color: var(--tinta-2); display: block; }
+.evolucao-form { margin-top: 0.5rem; }
+.linha-campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.6rem; }
+.evolucao-lista { margin-top: 0.75rem; }
+.evolucao-lista ul { padding-left: 1.1rem; margin: 0.4rem 0 0; }
+.evolucao-lista li { margin-bottom: 0.3rem; }
+.evolucao-lista .link { margin-left: 0.5rem; }
 .conteudo-nota { margin: 0 0 1rem; color: var(--tinta-2); max-width: 75ch; }
 .questao-topico { color: var(--azul); }
 
