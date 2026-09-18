@@ -1,4 +1,4 @@
-import { DEFAULT_LEARN, MASTERY, type BktParams, pCorrect, update } from './bkt'
+import { CREDITO_DICA, DEFAULT_LEARN, MASTERY, type BktParams, pCorrect, updateParcial } from './bkt'
 import { eap, info3pl, p3pl, thetaFromScore } from './irt'
 import { type Area, type Attempt, type Confianca, type Item, type SkillKey, type SkillPrior, type StudentState, skillKey } from './types'
 
@@ -61,14 +61,17 @@ export function mastery(s: StudentState, bank: Bank, k: SkillKey) {
 }
 
 /** Dica usada conta como erro para o rastreamento (convenção do ASSISTments). */
-export function record(s: StudentState, bank: Bank, item: Item, resposta: string, usouDica: boolean): StudentState {
+export const nivelDe = (t: Pick<Attempt, 'usouDica' | 'nivelDica'>): 0 | 1 | 2 | 3 => t.nivelDica ?? (t.usouDica ? 3 : 0)
+
+export function record(s: StudentState, bank: Bank, item: Item, resposta: string, dica: boolean | 0 | 1 | 2 | 3): StudentState {
+  const nivel: 0 | 1 | 2 | 3 = typeof dica === 'boolean' ? (dica ? 3 : 0) : dica
   const correta = resposta === item.gabarito
   const k = skillKey(item.area, item.habilidade)
   const params = paramsFor(bank, item, s.banda)
   const pLAntes = mastery(s, bank, k)
-  const next = update(pLAntes, correta && !usouDica, params)
+  const next = updateParcial(pLAntes, correta, CREDITO_DICA[nivel], params)
   const t: Attempt = {
-    itemId: item.id, resposta, correta, usouDica, ts: Date.now(),
+    itemId: item.id, resposta, correta, usouDica: nivel > 0, nivelDica: nivel, ts: Date.now(),
     pPrevisto: round4(pCorrect(pLAntes, params)), pLAntes: round4(pLAntes),
     thetaAntes: round4(theta(s, bank, item.area).mean), pBanda: item.p_banda?.[s.banda] ?? undefined,
   }
@@ -80,7 +83,7 @@ export function aplicarTentativa(s: StudentState, bank: Bank, t: Attempt): Stude
   const item = bank.byId.get(t.itemId)
   if (!item) return { ...s, tentativas: [...s.tentativas, t] } // questão fora do banco atual: guarda, não rastreia
   const k = skillKey(item.area, item.habilidade)
-  const next = update(mastery(s, bank, k), t.correta && !t.usouDica, paramsFor(bank, item, s.banda))
+  const next = updateParcial(mastery(s, bank, k), t.correta, CREDITO_DICA[nivelDe(t)], paramsFor(bank, item, s.banda))
   return { ...s, mastery: { ...s.mastery, [k]: next }, tentativas: [...s.tentativas, t] }
 }
 

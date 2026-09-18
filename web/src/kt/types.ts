@@ -64,6 +64,8 @@ export interface Attempt {
   resposta: string
   correta: boolean
   usouDica: boolean
+  /** 0 = sem dica; 1 = conceito; 2 = caminho; 3 = quase resposta. Ausente em registros antigos (= usouDica ? 3 : 0). */
+  nivelDica?: 0 | 1 | 2 | 3
   ts: number
   // Registro prequencial: o que o modelo apostava ANTES da resposta.
   // É o que permite avaliar o modelo sem vazamento (ver pipeline/avaliacao.py).

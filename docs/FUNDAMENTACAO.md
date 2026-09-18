@@ -89,3 +89,10 @@ Nada disso invalida a ideia do SPPA, que é boa e inspirou o painel. Mas o efeit
 - Garcia-Perez, M. A., & Nunez-Anton, V. (2003). Cellwise residual analysis in two-way contingency tables. *Educational and Psychological Measurement, 63*(5), 825–839.
 - Hattie, J., & Timperley, H. (2007). The power of feedback. *Review of Educational Research, 77*(1), 81–112.
 - Walvoord, B. E. (2010). *Assessment clear and simple: A practical guide for institutions, departments, and general education* (2nd ed.). Jossey-Bass.
+
+
+## Dicas em níveis e crédito parcial
+
+Três níveis, do mais leve ao quase-resposta: o que a questão pede (conceito e conteúdo), o caminho (primeiro passo, ou uma alternativa eliminada), e a resolução quase completa (ou três alternativas eliminadas). Cada nível reduz o crédito do acerto para o BKT: 100%, 75%, 50% e 0%.
+
+A atualização com crédito parcial é a mistura dos dois posteriores, "acertou" e "errou", pesada pelo crédito. É a forma mais simples de registrar "provavelmente sabia, mas não sozinho", sem inventar um parâmetro novo. Nível 3 vale como erro: quando a dica entrega quase tudo, o acerto não informa sobre o domínio. O nível fica gravado na tentativa (`nivelDica`), então os relatórios e o dataset de uso conseguem separar acertos plenos de acertos assistidos.

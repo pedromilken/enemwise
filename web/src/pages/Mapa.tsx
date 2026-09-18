@@ -3,7 +3,8 @@ import { MasteryGrid } from '../components/MasteryGrid'
 import { type Bank, mastery } from '../kt/engine'
 import { META_PADRAO, retorno } from '../kt/feedback'
 import { type Meta, nomeHabilidade, type StudentState } from '../kt/types'
-import { download } from '../store'
+import { relatorioHtml, respostasCsv } from '../relatorio'
+import { download, downloadTexto } from '../store'
 
 const FAIXA_CLASSE: Record<string, string> = {
   'meta provável': 'faixa ok', 'limítrofe': 'faixa limite', 'abaixo da meta provável': 'faixa risco', 'evidência insuficiente': 'faixa neutra',
@@ -16,6 +17,7 @@ export function Mapa({ bank, meta, student, descricoes, bloom, onChange, onReset
   const feitas = student.tentativas.length
   const acertos = student.tentativas.filter((t) => t.correta).length
   const r = retorno(student, bank)
+  const slug = student.nome.toLowerCase().replace(/\s+/g, '-') || 'estudante'
   return (
     <section className="folha">
       <div className="mapa-head">
@@ -24,7 +26,9 @@ export function Mapa({ bank, meta, student, descricoes, bloom, onChange, onReset
           <p className="lede">{feitas} questões respondidas, {acertos} acertos.</p>
         </div>
         <div className="mapa-acoes">
-          <button className="btn" onClick={() => download(`enemwise-${student.nome.toLowerCase().replace(/\s+/g, '-')}.json`, student)}>Exportar para o professor</button>
+          <button className="btn primary" onClick={() => downloadTexto(`relatorio-${slug}.html`, relatorioHtml(student, bank, meta, descricoes), 'text/html;charset=utf-8')}>Baixar relatório</button>
+          <button className="btn" onClick={() => downloadTexto(`respostas-${slug}.csv`, respostasCsv(student, bank, meta), 'text/csv;charset=utf-8')}>Respostas em CSV</button>
+          <button className="btn" onClick={() => download(`enemwise-${slug}.json`, student)}>Cópia para o professor (JSON)</button>
           <button className="link" onClick={() => { if (confirm('Apagar todo o progresso deste navegador?')) onReset() }}>Recomeçar do zero</button>
         </div>
       </div>

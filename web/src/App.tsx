@@ -9,6 +9,7 @@ import type { StudentState } from './kt/types'
 import {
   aoMudarSessao, apagarProgressoNuvem, baixarProgresso, enviarProgresso, nuvemDisponivel, sair, type Usuario,
 } from './nuvem'
+import { Banco } from './pages/Banco'
 import { Entrar } from './pages/Entrar'
 import { Inicio } from './pages/Inicio'
 import { Mapa } from './pages/Mapa'
@@ -16,14 +17,16 @@ import { Professor } from './pages/Professor'
 import { Treinar } from './pages/Treinar'
 import { loadStudent, saveStudent } from './store'
 
-type Tab = 'treinar' | 'mapa' | 'professor' | 'entrar'
-const TABS: [Tab, string][] = [['treinar', 'Treinar'], ['mapa', 'Meu retorno'], ['professor', 'Professor']]
-const fromHash = (): Tab => (location.hash === '#entrar' ? 'entrar' : TABS.find(([t]) => `#${t}` === location.hash)?.[0] ?? 'treinar')
+type Tab = 'treinar' | 'mapa' | 'professor' | 'entrar' | 'banco'
+const TABS: [Tab, string][] = [['treinar', 'Treinar'], ['banco', 'Questões'], ['mapa', 'Meu retorno'], ['professor', 'Professor']]
+const fromQuery = (): string | null => new URLSearchParams(location.hash.split('?')[1] ?? '').get('q')
+const fromHash = (): Tab => (location.hash.startsWith('#entrar') ? 'entrar' : TABS.find(([t]) => location.hash.startsWith(`#${t}`))?.[0] ?? 'treinar')
 
 export default function App() {
   const [bundle, setBundle] = useState<Awaited<ReturnType<typeof loadBundle>> | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [tab, setTab] = useState<Tab>(fromHash)
+  const [itemInicial, setItemInicial] = useState<string | null>(fromQuery)
   const [student, setStudent] = useState<StudentState | null>(loadStudent)
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   const [status, setStatus] = useState<StatusSync>('local')
@@ -32,7 +35,7 @@ export default function App() {
   const ultimoUsuario = useRef<string | null>(null)
 
   useEffect(() => { loadBundle().then((b) => { setD(b.meta.D); setBundle(b) }).catch((e) => setErro(String(e.message ?? e))) }, [])
-  useEffect(() => { const f = () => setTab(fromHash()); addEventListener('hashchange', f); return () => removeEventListener('hashchange', f) }, [])
+  useEffect(() => { const f = () => { setTab(fromHash()); setItemInicial(fromQuery()) }; addEventListener('hashchange', f); return () => removeEventListener('hashchange', f) }, [])
   const bank = useMemo(() => (bundle ? makeBank(bundle.items, bundle.priors, bundle.meta.bandas) : null), [bundle])
   // Treinar fica aberto a qualquer visitante; o retorno e a área do professor pedem conta
   const precisaConta = nuvemDisponivel && !usuario && (tab === 'mapa' || tab === 'professor')
@@ -140,11 +143,12 @@ export default function App() {
             <p className="fineprint">Sem conta, você continua treinando normalmente: o progresso fica só neste navegador.</p>
           </section>
         )}
+        {bundle && bank && tab === 'banco' && <Banco bank={bank} meta={bundle.meta} student={student} />}
         {!precisaConta && bundle && bank && tab === 'professor' && <Professor bank={bank} meta={bundle.meta} descricoes={bundle.descricoes} bloom={bundle.bloom} />}
-        {bundle && bank && tab !== 'professor' && tab !== 'entrar' && !student && !pendente && (
+        {bundle && bank && tab !== 'professor' && tab !== 'entrar' && tab !== 'banco' && !student && !pendente && (
           <Inicio bandas={bundle.meta.bandas} onStart={(nome, banda) => update({ ...newStudent(bank, nome, banda), atualizadoEm: Date.now() })} />
         )}
-        {bundle && bank && student && tab === 'treinar' && <Treinar bank={bank} meta={bundle.meta} student={student} onChange={update} />}
+        {bundle && bank && student && tab === 'treinar' && <Treinar key={itemInicial ?? 'auto'} bank={bank} meta={bundle.meta} student={student} onChange={update} descricoes={bundle.descricoes} itemInicial={itemInicial} />}
         {!precisaConta && bundle && bank && student && tab === 'mapa' && (
           <Mapa bank={bank} meta={bundle.meta} student={student} descricoes={bundle.descricoes} bloom={bundle.bloom} onChange={update} onReset={() => update(null)} />
         )}

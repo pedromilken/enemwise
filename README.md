@@ -51,6 +51,10 @@ da prova sem precisar supor qual foi usada. O relatório de casamento sai em `me
 ## Login e devolutiva pela Matriz
 
 - **Login opcional** (Supabase) com Google, e-mail e senha, ou link no e-mail, com o progresso somado entre aparelhos. Configuração em [`docs/LOGIN.md`](docs/LOGIN.md).
+- **Dicas em três níveis** (o que a questão pede, o caminho, quase a resposta), com crédito decrescente para o domínio: 75%, 50% e 0%. Sem chave de IA, as dicas vêm da Matriz e da eliminação de alternativas.
+- **Questões:** banco navegável com as 1.547 questões com texto, filtros por área, edição, conteúdo e busca, e abertura direta de qualquer uma. Cada questão tem um link para reportar problema, que abre uma issue já preenchida.
+- **Relatório legível:** em Meu retorno, "Baixar relatório" gera um HTML autônomo (abre em qualquer navegador, imprime em PDF) com meta, devolutiva pela Matriz, competências, conteúdos e a lista de respostas; há também CSV das respostas. O JSON fica como cópia técnica para o professor importar.
+- **Fórmulas legíveis:** as fontes abertas descrevem fórmulas por extenso ("abre parêntese, x ao quadrado sobre 4"); o pipeline as converte em notação (`(x² / 4)`) só em frases com marcador de fórmula, sem tocar na prosa.
 - **Conteúdos programáticos:** cada questão é classificada em tópicos de disciplina (geometria analítica, genética, variação linguística), usados no filtro do treino e nos relatórios. Detalhes em [`docs/CONTEUDOS.md`](docs/CONTEUDOS.md).
 - **Devolutiva pela Matriz de Referência do Enem:** pontos fortes e a desenvolver por habilidade, desempenho acima ou abaixo do esperado por competência, alerta de concepção equivocada (erros repetidos com certeza) e versão para imprimir. As 120 habilidades e 30 competências estão em `web/src/data/matriz.json`.
 

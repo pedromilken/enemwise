@@ -20,6 +20,12 @@ export const saveStudent = (s: StudentState | null) => (s ? write(KEY, s) : loca
 export const loadTurma = () => read<StudentState[]>(TURMA, [])
 export const saveTurma = (t: StudentState[]) => write(TURMA, t)
 
+export function downloadTexto(filename: string, texto: string, tipo: string) {
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([texto], { type: tipo })), download: filename })
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+}
+
 export function download(filename: string, data: unknown) {
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename })

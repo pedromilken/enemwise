@@ -19,10 +19,24 @@ const questao = (it: Item) =>
   `${it.enunciado}\n${(it.descricao ?? []).join('\n')}\n` +
   (it.alternativas ?? []).map((a, i) => `${'ABCDE'[i]}) ${a}`).join('\n')
 
-export function prompt(kind: 'dica' | 'explicacao', it: Item, resposta?: string) {
+export type NivelDica = 1 | 2 | 3
+
+export const NIVEIS_DICA: Record<NivelDica, { rotulo: string; credito: string }> = {
+  1: { rotulo: 'Dica leve: o que a questão pede', credito: '75%' },
+  2: { rotulo: 'Dica média: o caminho', credito: '50%' },
+  3: { rotulo: 'Quase a resposta', credito: '0%' },
+}
+
+const INSTRUCAO: Record<NivelDica, string> = {
+  1: 'Dê UMA dica leve (até 2 frases): diga que conceito ou habilidade a questão cobra e o que ela está pedindo, sem indicar caminho de resolução nem falar de alternativas.',
+  2: 'Dê uma dica média (até 3 frases): aponte o caminho de resolução, o primeiro passo e a informação do enunciado que importa. Não revele a alternativa correta.',
+  3: 'Dê uma dica forte (até 4 frases): conduza a resolução quase até o fim, deixando apenas o último passo para o estudante. Pode dizer quais alternativas NÃO fazem sentido e por quê, mas não nomeie a correta.',
+}
+
+export function prompt(kind: 'dica' | 'explicacao', it: Item, resposta?: string, nivel: NivelDica = 1) {
   const base = `Você é tutor de ENEM para estudantes do ensino médio brasileiro. Área ${it.area}, habilidade H${it.habilidade} da Matriz de Referência.`
   return kind === 'dica'
-    ? `${base}\nDê UMA dica curta (até 3 frases) que ajude a raciocinar. Não revele a alternativa correta nem elimine alternativas explicitamente.\n\n${questao(it)}`
+    ? `${base}\n${INSTRUCAO[nivel]}\n\n${questao(it)}`
     : `${base}\nO estudante marcou ${resposta}. O gabarito é ${it.gabarito}. Explique em até 6 frases por que o gabarito está correto e, se ele errou, qual raciocínio provavelmente levou à alternativa marcada.\n\n${questao(it)}`
 }
 
@@ -42,8 +56,27 @@ export async function ask(cfg: LlmConfig, text: string): Promise<string> {
   return data.content.map((b: { type: string; text?: string }) => (b.type === 'text' ? b.text : '')).join('\n')
 }
 
-/** Dica sem IA: elimina uma alternativa errada, escolhida de forma estável. */
-export function eliminar(it: Item): string {
+/** Dica sem IA: elimina alternativas erradas, em ordem estável por questão. */
+export function eliminar(it: Item, quantas = 1): string[] {
   const erradas = [...'ABCDE'].filter((l) => l !== it.gabarito)
-  return erradas[it.co_item % erradas.length]
+  const inicio = it.co_item % erradas.length
+  return Array.from({ length: Math.min(quantas, erradas.length) }, (_, i) => erradas[(inicio + i) % erradas.length])
+}
+
+/** Dica sem IA por nível: descrição da habilidade, depois eliminação progressiva. */
+export function dicaLocal(it: Item, nivel: NivelDica, descricaoHabilidade?: string, conteudo?: string): string {
+  if (nivel === 1) {
+    const partes = [conteudo ? `Conteúdo: ${conteudo}.` : '', descricaoHabilidade ? `A questão pede para ${descricaoHabilidade.charAt(0).toLowerCase()}${descricaoHabilidade.slice(1)}` : '']
+    return partes.filter(Boolean).join(' ') || 'Releia o comando da questão: o que exatamente está sendo pedido?'
+  }
+  const n = nivel === 2 ? 1 : 3
+  const el = eliminar(it, n)
+  return n === 1 ? `A alternativa ${el[0]} não é a correta.` : `As alternativas ${el.join(', ')} não são a correta. Sobram duas.`
+}
+
+/** Link para relatar problema na questão: abre uma issue já preenchida no repositório. */
+export function linkRelato(it: Item, repo = 'pedromilken/enemwise'): string {
+  const titulo = `Problema na questão ${it.numero ?? ''} do ENEM ${it.ano} (${it.area}, id ${it.id})`
+  const corpo = `**Questão:** ENEM ${it.ano}, nº ${it.numero ?? '?'}, área ${it.area}, habilidade H${it.habilidade}, id \`${it.id}\`\n\n**O que está errado:** (texto cortado, fórmula ilegível, gabarito, imagem faltando...)\n\n**Como deveria ser:**`
+  return `https://github.com/${repo}/issues/new?title=${encodeURIComponent(titulo)}&body=${encodeURIComponent(corpo)}&labels=quest%C3%A3o`
 }

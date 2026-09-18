@@ -236,3 +236,33 @@ describe('desempenho por conteúdo programático', () => {
     expect(disponiveis(bank, CAT, ['LC'])).toEqual([])
   })
 })
+
+import { CREDITO_DICA, updateParcial } from './bkt'
+
+describe('dicas em níveis: crédito parcial', () => {
+  const p = { guess: 0.2, slip: 0.1, learn: 0.12 }
+  it('acerto com dica fica entre acerto pleno e erro, e nível 3 vale como erro', () => {
+    const pleno = updateParcial(0.5, true, CREDITO_DICA[0], p)
+    const n1 = updateParcial(0.5, true, CREDITO_DICA[1], p)
+    const n2 = updateParcial(0.5, true, CREDITO_DICA[2], p)
+    const n3 = updateParcial(0.5, true, CREDITO_DICA[3], p)
+    const erro = updateParcial(0.5, false, 1, p)
+    expect(pleno).toBeGreaterThan(n1)
+    expect(n1).toBeGreaterThan(n2)
+    expect(n2).toBeGreaterThan(n3)
+    expect(n3).toBeCloseTo(erro, 10)
+  })
+  it('record registra o nível e aplica o crédito; registros antigos continuam válidos', () => {
+    const its = [item('1', 3, 0)]
+    const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+    const s0 = newStudent(bank, 'a', 1)
+    const semDica = record(s0, bank, its[0], 'A', 0)
+    const comDica2 = record(s0, bank, its[0], 'A', 2)
+    const antigo = record(s0, bank, its[0], 'A', true)  // API antiga: usouDica = true
+    expect(semDica.tentativas[0].nivelDica).toBe(0)
+    expect(comDica2.tentativas[0]).toMatchObject({ nivelDica: 2, usouDica: true })
+    expect(antigo.tentativas[0].nivelDica).toBe(3)
+    expect(semDica.mastery['MT-H3']).toBeGreaterThan(comDica2.mastery['MT-H3'])
+    expect(comDica2.mastery['MT-H3']).toBeGreaterThan(antigo.mastery['MT-H3'])
+  })
+})

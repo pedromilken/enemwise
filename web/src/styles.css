@@ -221,6 +221,14 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .conta-painel .google { margin-bottom: 0.75rem; }
 .conta-painel .ou { text-align: center; color: var(--tinta-2); font-size: 0.85rem; margin: 0.25rem 0 0; }
 
+.credito { align-self: center; color: var(--tinta-2); }
+.relato { margin: 1rem 0 0; font-size: 0.85rem; }
+.relato a { color: var(--tinta-2); }
+.banco .busca input { min-width: 14rem; }
+.banco-tabela td { vertical-align: top; }
+.banco-trecho { color: var(--tinta-2); max-width: 32ch; }
+tr.feita.ok td:first-child { border-left: 3px solid var(--verde); }
+tr.feita.erro td:first-child { border-left: 3px solid var(--rosa); }
 .conteudo-nota { margin: 0 0 1rem; color: var(--tinta-2); max-width: 75ch; }
 .questao-topico { color: var(--azul); }
 

@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from . import texto
 from .schema import BLOCK_STARTS
 
 NORM = ["ano", "aplicacao", "numero", "enunciado", "alternativas", "gabarito", "descricao", "figuras", "fonte"]
@@ -63,8 +64,8 @@ def load_questions(path: str | Path, ano_padrao: int | None = None) -> pd.DataFr
             continue
         out.append({
             "ano": ano, "aplicacao": aplic, "numero": int(num[-1]),
-            "enunciado": str(_first(r, ["question", "enunciado", "stem", "context"]) or ""),
-            "alternativas": alts,
+            "enunciado": texto.formatar_formulas(str(_first(r, ["question", "enunciado", "stem", "context"]) or "")),
+            "alternativas": [texto.formatar_formulas(a) or "" for a in alts],
             "gabarito": str(_first(r, ["label", "answerKey", "answer", "gabarito"]) or "").strip().upper()[:1],
             "descricao": list(_first(r, ["description", "descricao"]) or []),
             "figuras": list(_first(r, ["figures", "figuras"]) or []),

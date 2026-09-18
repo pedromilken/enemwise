@@ -5,7 +5,7 @@ import { type Bank, type Filtro, mastery, nextItem, paramsFor, record, setConfia
 import { scoreFromTheta } from '../kt/irt'
 import { disponiveis } from '../kt/conteudo'
 import { type Area, AREAS, type Confianca, type Item, type Meta, nomeHabilidade, skillKey, type StudentState } from '../kt/types'
-import { ask, DEFAULT_MODEL, eliminar, getConfig, prompt, setConfig } from '../tutor'
+import { ask, dicaLocal, linkRelato, NIVEIS_DICA, type NivelDica, DEFAULT_MODEL, getConfig, prompt, setConfig } from '../tutor'
 
 function Enunciado({ item }: { item: Item }) {
   const partes = (item.enunciado ?? '').split('[[placeholder]]')
@@ -66,20 +66,24 @@ function Tutor({ item, respondida, resposta }: { item: Item; respondida: boolean
   )
 }
 
-export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: Meta; student: StudentState; onChange: (s: StudentState) => void }) {
+export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemInicial }: {
+  bank: Bank; meta: Meta; student: StudentState; onChange: (s: StudentState) => void
+  descricoes?: Record<string, string>; itemInicial?: string | null
+}) {
   const [areas, setAreas] = useState<Area[]>(AREAS)
   const [edicao, setEdicao] = useState<number | null>(null)
   const [topico, setTopico] = useState<string | null>(null)
   const filtro = (as: Area[], ed: number | null, tp: string | null): Filtro => (i) =>
     as.includes(i.area) && (ed === null || i.ano === ed) && (tp === null || (i.topicos ?? []).includes(tp))
-  const [item, setItem] = useState<Item | null>(() => nextItem(student, bank, filtro(AREAS, null, null)))
+  const [item, setItem] = useState<Item | null>(() => (itemInicial && bank.byId.get(itemInicial)) || nextItem(student, bank, filtro(AREAS, null, null)))
   const catalogo = meta.conteudos ?? []
   const conteudos = useMemo(() => disponiveis(bank, catalogo, areas), [bank, catalogo, areas])
   const conteudoAtual = catalogo.find((c) => c.id === topico) ?? null
   const [escolha, setEscolha] = useState<string | null>(null)
   const [respondida, setRespondida] = useState(false)
-  const [dica, setDica] = useState<string | null>(null)
+  const [dicas, setDicas] = useState<string[]>([])   // uma por nível já usado
   const [dicaBusy, setDicaBusy] = useState(false)
+  const nivel = dicas.length as 0 | 1 | 2 | 3
 
   const k = item ? skillKey(item.area, item.habilidade) : null
   const pL = item && k ? mastery(student, bank, k) : 0
@@ -89,7 +93,7 @@ export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: M
   const banda = item?.p_banda?.[student.banda]
 
   function recomecar(as: Area[], ed: number | null, tp: string | null) {
-    setAreas(as); setEdicao(ed); setTopico(tp); setEscolha(null); setRespondida(false); setDica(null)
+    setAreas(as); setEdicao(ed); setTopico(tp); setEscolha(null); setRespondida(false); setDicas([])
     setItem(nextItem(student, bank, filtro(as, ed, tp)))
   }
   // trocar de área derruba o conteúdo escolhido quando ele não pertence à nova seleção
@@ -100,20 +104,23 @@ export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: M
   }
   function confirmar() {
     if (!item || !escolha) return
-    onChange(record(student, bank, item, escolha, dica !== null))
+    onChange(record(student, bank, item, escolha, nivel))
     setRespondida(true)
   }
   function proxima() {
-    setEscolha(null); setRespondida(false); setDica(null)
+    setEscolha(null); setRespondida(false); setDicas([])
     setItem(nextItem(student, bank, filtro(areas, edicao, topico)))
   }
   async function pedirDica() {
-    if (!item) return
+    if (!item || nivel >= 3) return
+    const prox = (nivel + 1) as NivelDica
+    const local = dicaLocal(item, prox, descricoes[skillKey(item.area, item.habilidade)],
+      (item.topicos ?? []).map((t) => catalogo.find((c) => c.id === t)?.nome).filter(Boolean).join(', ') || undefined)
     const cfg = getConfig()
-    if (!cfg) { setDica(`A alternativa ${eliminar(item)} não é a correta.`); return }
+    if (!cfg) { setDicas((d) => [...d, local]); return }
     setDicaBusy(true)
-    try { setDica(await ask(cfg, prompt('dica', item))) }
-    catch { setDica(`A alternativa ${eliminar(item)} não é a correta.`) }
+    try { const txt = await ask(cfg, prompt('dica', item, undefined, prox)); setDicas((d) => [...d, txt]) }
+    catch { setDicas((d) => [...d, local]) }
     finally { setDicaBusy(false) }
   }
 
@@ -186,11 +193,16 @@ export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: M
                 )
               })}
             </ol>
-            {dica && <p className="dica">{dica}</p>}
+            {dicas.map((d, i) => (
+              <p key={i} className="dica"><strong>{NIVEIS_DICA[(i + 1) as NivelDica].rotulo}.</strong> {d}</p>
+            ))}
             <div className="acoes">
               {!respondida ? (
                 <>
-                  <button className="btn" onClick={pedirDica} disabled={dica !== null || dicaBusy}>{dicaBusy ? 'Buscando dica…' : 'Pedir dica'}</button>
+                  <button className="btn" onClick={pedirDica} disabled={nivel >= 3 || dicaBusy}>
+                    {dicaBusy ? 'Buscando dica…' : nivel === 0 ? 'Pedir dica' : nivel < 3 ? `Dica ${nivel + 1} de 3` : 'Sem mais dicas'}
+                  </button>
+                  {nivel > 0 && <small className="credito">Acerto agora vale {NIVEIS_DICA[nivel as NivelDica].credito} para o domínio</small>}
                   <button className="btn primary" onClick={confirmar} disabled={!escolha}>Confirmar resposta</button>
                 </>
               ) : (
@@ -210,6 +222,7 @@ export function Treinar({ bank, meta, student, onChange }: { bank: Bank; meta: M
                 </>
               )}
             </div>
+            <p className="relato"><a href={linkRelato(item)} target="_blank" rel="noopener noreferrer">Reportar problema nesta questão</a></p>
           </article>
 
           <aside className="painel">

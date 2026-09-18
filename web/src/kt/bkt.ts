@@ -23,6 +23,22 @@ export function update(pL: number, correct: boolean, params: BktParams): number 
   return post + (1 - post) * params.learn
 }
 
+/**
+ * Crédito de um acerto conforme o nível de dica usado. Nível 0: acerto pleno.
+ * Nível 3 é quase a resposta, então vale como erro: o modelo não aprende nada sobre domínio.
+ */
+export const CREDITO_DICA = [1, 0.75, 0.5, 0] as const
+
+/**
+ * Atualização com crédito parcial: mistura do posterior "acertou" com o posterior "errou",
+ * pesada pelo crédito. É a forma mais simples de dizer "provavelmente sabia, mas não por si só".
+ */
+export function updateParcial(pL: number, correct: boolean, credito: number, params: BktParams): number {
+  if (!correct) return update(pL, false, params)
+  const w = Math.max(0, Math.min(1, credito))
+  return w * update(pL, true, params) + (1 - w) * update(pL, false, params)
+}
+
 export const pCorrect = (pL: number, { guess, slip }: BktParams) => pL * (1 - slip) + (1 - pL) * guess
 
 export type Level = 'a construir' | 'em progresso' | 'consolidada'

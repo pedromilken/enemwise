@@ -119,3 +119,15 @@ def test_conteudos_catalogo_e_cobertura():
     r = con.rotular(itens)
     assert list(r["topicos"].apply(bool)) == [True, False]
     assert con.cobertura(r).iloc[0]["cobertura"] == 0.5
+
+
+def test_formulas_verbalizadas_ficam_legiveis():
+    from enemwise_pipeline.texto import formatar_formulas as f
+    assert f("V de x é igual a, abre parêntese, x ao quadrado sobre 4, fecha parêntese, menos 10 vezes x mais 105.") \
+        == "V de x = (x² / 4) menos 10 · x mais 105."
+    assert f("logaritmo de abre parêntese, fração, numerador E índice 2, denominador E índice 1, fecha parêntese.") == "logaritmo de ((E₂)/(E₁))."
+    assert f("Use 5 vezes, abre parêntese, 10 elevado a menos 6, fecha parêntese.") == "Use 5 · (10 ^(−6))."
+    # prosa comum não é tocada, mesmo com "sobre" e "vezes"
+    assert f("Ele falou sobre o tema várias vezes.") == "Ele falou sobre o tema várias vezes."
+    assert f("Ótimo: V0 maior ou igual a 24.") == "Ótimo: V0 ≥ 24."
+    assert f(None) is None and f("") == ""
