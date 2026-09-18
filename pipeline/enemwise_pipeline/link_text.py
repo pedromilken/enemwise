@@ -113,9 +113,11 @@ def fingerprint_link(questions: pd.DataFrame, layout: dict[int, pd.DataFrame],
                        "questoes_vinculadas": overlap if aceito else 0, "aceito": aceito})
         if not aceito:
             continue
+        cor = str(la["TX_COR"].dropna().iloc[0]).strip().title() if "TX_COR" in la and la["TX_COR"].notna().any() else None
+        report[-1]["cor"] = cor
         for idx, numero in common.items():
             row = q.loc[numero]
-            links.append({"co_item": int(la.loc[idx, "CO_ITEM"]), "numero": int(numero),
+            links.append({"co_item": int(la.loc[idx, "CO_ITEM"]), "numero": int(numero), "cor_caderno": cor,
                           "enunciado": row["enunciado"], "alternativas": row["alternativas"],
                           "descricao": row["descricao"], "figuras": row["figuras"], "fonte_texto": row["fonte"]})
     return pd.DataFrame(links), report

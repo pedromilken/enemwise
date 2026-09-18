@@ -344,3 +344,11 @@ describe('link para a resolução do Objetivo', () => {
     expect(linkObjetivo({ ...item('1', 1, 0), ano: 2016, area: 'MT', aplicacao: 2 })).toBeNull()
   })
 })
+
+describe('caderno indicado no link externo', () => {
+  it('a cor vem do item e o número é zero-preenchido como no site', () => {
+    const it = { ...item('1', 1, 0), ano: 2024, area: 'LC' as const, numero: 7, cor_caderno: 'Amarela' }
+    expect(linkObjetivo(it)).toMatch(/enem2024_1dia\.aspx$/)
+    expect(String(it.numero).padStart(3, '0')).toBe('007')
+  })
+})

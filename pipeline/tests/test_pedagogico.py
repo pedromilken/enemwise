@@ -151,3 +151,26 @@ def test_resolucoes_cache_retomavel(tmp_path, monkeypatch):
     assert r2["geradas_agora"] == 0 and len(chamadas) == 2
     import json
     assert json.loads(cache.read_text(encoding="utf-8"))["2099-1"].startswith("Resolução de teste")
+
+
+def test_vinculo_registra_a_cor_do_caderno():
+    """O estudante precisa saber em qual caderno procurar a questão no site do Objetivo."""
+    import numpy as np
+    import pandas as pd
+    from enemwise_pipeline import items as itm, link_text as lt
+    rng = np.random.default_rng(0)
+    L = np.array(list("ABCDE"))
+    base = pd.DataFrame({"CO_ITEM": range(100, 145), "TX_GABARITO": rng.choice(L, 45), "CO_HABILIDADE": rng.integers(1, 31, 45),
+                         "NU_PARAM_A": 1.5, "NU_PARAM_B": 0.0, "NU_PARAM_C": 0.2, "IN_ITEM_ABAN": 0, "SG_AREA": "MT", "TP_LINGUA": np.nan})
+    provas = []
+    for co, cor, perm in [(500, "AZUL", np.arange(45)), (501, "AMARELA", rng.permutation(45))]:
+        b = base.iloc[perm].copy()
+        b["CO_PROVA"], b["TX_COR"], b["CO_POSICAO"] = co, cor, np.arange(136, 181)
+        provas.append(b)
+    layout = itm.booklet_layout(pd.concat(provas, ignore_index=True))
+    azul = layout[500].sort_values("CO_POSICAO")
+    q = pd.DataFrame({"ano": 2099, "aplicacao": 1, "numero": range(136, 181), "gabarito": azul["TX_GABARITO"].to_numpy(),
+                      "enunciado": "texto", "alternativas": [["a"] * 5] * 45, "descricao": [[]] * 45, "figuras": [[]] * 45, "fonte": "t.jsonl"})
+    links, rel = lt.fingerprint_link(q, layout)
+    assert rel[0]["cor"] == "Azul"                      # a numeração veio do caderno azul
+    assert set(links["cor_caderno"]) == {"Azul"}

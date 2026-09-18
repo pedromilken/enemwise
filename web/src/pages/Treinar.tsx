@@ -31,9 +31,14 @@ function Enunciado({ item }: { item: Item }) {
 function Resolucao({ item }: { item: Item }) {
   const externo = linkObjetivo(item)
   const linkExterno = externo && (
-    <p><small>
-      <a href={externo} target="_blank" rel="noopener noreferrer">Resolução comentada dos professores do Objetivo</a> (site externo; procure a questão {item.numero ?? ''} na página da prova).
-    </small></p>
+    <p className="resolucao-externa">
+      <a className="btn" href={externo} target="_blank" rel="noopener noreferrer">Ver resolução comentada do Objetivo</a>
+      <small>
+        Site externo. Lá, abra a aba da <strong>prova {item.cor_caderno ?? 'da cor indicada no seu caderno'}</strong>
+        {item.numero ? <> e clique na questão <strong>{String(item.numero).padStart(3, '0')}</strong></> : null}.
+        {' '}A numeração e a ordem mudam conforme a cor do caderno.
+      </small>
+    </p>
   )
   if (!item.resolucao) {
     return (

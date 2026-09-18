@@ -61,6 +61,8 @@ def build_edition(ano: int, itens: Path, microdados: Path | None, out: Path,
             lambda i: [None if pd.isna(v) else float(v) for v in pb.loc[i]] if i in pb.index else None)
     if not links.empty:
         full = full.merge(links, on="co_item", how="left")
+    if "cor_caderno" in full:
+        full["cor_caderno"] = full["cor_caderno"].where(full["cor_caderno"].notna(), None)
     if "enunciado" in full:
         full = con.rotular(full)  # conteúdos programáticos a partir do texto da questão
 

@@ -241,6 +241,8 @@ tr.feita.erro td:first-child { border-left: 3px solid var(--rosa); }
 .evolucao-lista li { margin-bottom: 0.3rem; }
 .evolucao-lista .link { margin-left: 0.5rem; }
 .resolucao { border-left: 3px solid var(--azul); padding: 0.4rem 0 0.4rem 1rem; margin: 0.5rem 0; max-width: 75ch; }
+.resolucao-externa { display: grid; gap: 0.4rem; justify-items: start; margin-top: 0.75rem; }
+.resolucao-externa small { color: var(--tinta-2); max-width: 70ch; }
 .resolucao summary { cursor: pointer; font-weight: 600; }
 .resolucao p { margin: 0.5rem 0 0; }
 .revisao-aviso { background: var(--fundo-suave, #f3f5f2); border-radius: 0.5rem; padding: 0.5rem 0.8rem; margin: 0 0 0.75rem; color: var(--tinta-2); }

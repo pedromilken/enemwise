@@ -14,6 +14,7 @@ export interface Item {
   p_banda?: (number | null)[]
   numero?: number
   aplicacao?: number
+  cor_caderno?: string | null   // caderno de onde veio a numeração (Azul, Amarela…)
   topicos?: string[]
   resolucao?: string   // resolução comentada, gerada no pipeline (enemwise resolucoes)
   enunciado?: string

@@ -79,6 +79,7 @@ def canonical_items(df: pd.DataFrame, ano: int) -> pd.DataFrame:
 
 def booklet_layout(df: pd.DataFrame) -> dict[int, pd.DataFrame]:
     """CO_PROVA -> itens na ordem em que aparecem no caderno (CO_POSICAO crescente)."""
-    return {int(k): v.sort_values("CO_POSICAO")[["CO_POSICAO", "CO_ITEM", "TX_GABARITO", "SG_AREA"]]
+    cols = [c for c in ["CO_POSICAO", "CO_ITEM", "TX_GABARITO", "SG_AREA", "TX_COR", "TP_LINGUA"] if c in df]
+    return {int(k): v.sort_values("CO_POSICAO")[cols]
             .reset_index(drop=True)
             for k, v in df.groupby("CO_PROVA")}
