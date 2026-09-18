@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import avaliacao, benchmark, bloom, conteudos, dataset, datasheet, inep, leitura, link_text, longo, merge as mrg, synth
+from . import avaliacao, benchmark, bloom, conteudos, dataset, datasheet, inep, leitura, link_text, longo, merge as mrg, resolucoes, synth
 from .edicao import build_edition
 
 
@@ -118,6 +118,13 @@ def main(argv: list[str] | None = None) -> None:
     ct.add_argument("--entrada", required=True, help="pasta do batch (com <ano>/items_full.json) ou pasta data do app")
     ct.add_argument("--topico", help="mostra exemplos de um tópico (id do catálogo)")
     ct.add_argument("--amostra", type=int, default=5)
+
+    rs = sub.add_parser("resolucoes", help="gera resoluções comentadas com a API da Anthropic (cache retomável)")
+    rs.add_argument("--entrada", required=True, help="pasta do batch (com <ano>/items_full.json)")
+    rs.add_argument("--cache", default=None, help="arquivo de cache (padrão: <entrada>/resolucoes.json)")
+    rs.add_argument("--chave", default=None, help="chave da API; ou defina ANTHROPIC_API_KEY")
+    rs.add_argument("--modelo", default=resolucoes.MODELO_PADRAO)
+    rs.add_argument("--limite", type=int, default=None, help="gera só as N primeiras pendentes (para testar o custo)")
 
     bl = sub.add_parser("bloom", help="CSV (chave, descricao[, bloom]) -> habilidades.json com nível sugerido")
     bl.add_argument("--entrada", required=True)
@@ -230,6 +237,17 @@ def main(argv: list[str] | None = None) -> None:
         rel = avaliacao.avaliar(avaliacao.carregar_exportacoes(args.exportacoes), excluir_dica=not args.incluir_dica)
         texto = json.dumps(rel, ensure_ascii=False, indent=2, default=float)
         Path(args.saida).write_text(texto, encoding="utf-8") if args.saida else print(texto)
+    elif args.cmd == "resolucoes":
+        raiz = Path(args.entrada)
+        itens = pd.concat([pd.read_json(a) for a in sorted(raiz.rglob("items_full.json"))], ignore_index=True)
+        itens = itens[itens["enunciado"].notna()]
+        nomes = {t["id"]: t["nome"] for t in conteudos.catalogo()}
+        r = resolucoes.gerar(json.loads(itens.to_json(orient="records", force_ascii=False)),
+                             Path(args.cache) if args.cache else raiz / "resolucoes.json",
+                             chave=args.chave, modelo=args.modelo, nomes_conteudo=nomes, limite=args.limite)
+        print(json.dumps(r, ensure_ascii=False))
+        print("Rode `enemwise merge` para levar as resoluções ao app.")
+
     elif args.cmd == "conteudos":
         raiz = Path(args.entrada)
         arqs = sorted(raiz.rglob("items_full.json")) or sorted((raiz / "items").glob("*.json"))
@@ -260,7 +278,7 @@ def main(argv: list[str] | None = None) -> None:
                          incluir_reprovadas=args.incluir_reprovadas)
         print(json.dumps({k: meta[k] for k in ("edicoes", "edicoes_com_texto", "n_itens_com_texto",
                                                "auditoria_reprovada", "auditoria_alertas_certificadas",
-                                               "parametros_reajustados",
+                                               "parametros_reajustados", "n_itens_com_resolucao",
                                                "diagnostico_monotonia", "tamanho_mb")},
                          indent=2, ensure_ascii=False))
         vinc = pd.DataFrame(meta["vinculo_texto"])

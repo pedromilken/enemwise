@@ -1,5 +1,5 @@
 {
-  "gerado_em": "2026-09-18T15:21:08+00:00",
+  "gerado_em": "2026-09-18T15:39:06+00:00",
   "sintetico": false,
   "D": 1.7,
   "areas": {
@@ -1879,6 +1879,7 @@
       "disciplina": "Filosofia e Sociologia"
     }
   ],
+  "n_itens_com_resolucao": 0,
   "cobertura_conteudos": [
     {
       "area": "CH",

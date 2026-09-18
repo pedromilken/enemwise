@@ -33,6 +33,17 @@ export function evolucao(s: StudentState, bank: Bank): EvolucaoArea[] {
   })
 }
 
+/** Nota estimada ao longo dos dias, a partir do θ registrado antes de cada resposta (prequencial). */
+export function trajetoria(s: StudentState, bank: Bank, area: Area): { data: string; nota: number }[] {
+  const porDia = new Map<string, number>()
+  const ts = [...s.tentativas].filter((t) => bank.byId.get(t.itemId)?.area === area && typeof t.thetaAntes === 'number')
+  for (const t of ts) porDia.set(new Date(t.ts).toISOString().slice(0, 10), Math.round(scoreFromTheta(t.thetaAntes!)))
+  const atual = s.tentativas.filter((t) => bank.byId.get(t.itemId)?.area === area).length >= MIN_EVIDENCIA
+    ? Math.round(scoreFromTheta(theta(s, bank, area).mean)) : null
+  if (atual !== null) porDia.set(new Date().toISOString().slice(0, 10), atual)
+  return [...porDia.entries()].map(([data, nota]) => ({ data, nota })).sort((a, b) => a.data.localeCompare(b.data))
+}
+
 export function novoResultado(data: string, origem: string, notas: Partial<Record<Area, number>>): ResultadoAnterior {
   const limpas: Partial<Record<Area, number>> = {}
   for (const a of AREAS) {

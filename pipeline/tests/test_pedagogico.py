@@ -131,3 +131,23 @@ def test_formulas_verbalizadas_ficam_legiveis():
     assert f("Ele falou sobre o tema várias vezes.") == "Ele falou sobre o tema várias vezes."
     assert f("Ótimo: V0 maior ou igual a 24.") == "Ótimo: V0 ≥ 24."
     assert f(None) is None and f("") == ""
+
+
+def test_resolucoes_cache_retomavel(tmp_path, monkeypatch):
+    from enemwise_pipeline import resolucoes
+    chamadas = []
+    monkeypatch.setattr(resolucoes, "_chamar", lambda chave, modelo, texto: (chamadas.append(texto) or f"Resolução de teste ({len(chamadas)})"))
+    itens = [{"id": "2099-1", "area": "MT", "habilidade": 8, "ano": 2099, "numero": 1, "gabarito": "B",
+              "enunciado": "Qual o volume do cilindro?", "alternativas": ["1", "2", "3", "4", "5"], "topicos": ["geometria-espacial"]},
+             {"id": "2099-2", "area": "LC", "habilidade": 18, "ano": 2099, "numero": 2, "gabarito": "A",
+              "enunciado": "Leia o texto.", "alternativas": ["a", "b", "c", "d", "e"]},
+             {"id": "2099-3", "area": "CH", "habilidade": 1, "ano": 2099, "numero": 3, "gabarito": "C", "enunciado": None}]
+    cache = tmp_path / "resolucoes.json"
+    r = resolucoes.gerar(itens, cache, chave="teste", nomes_conteudo={"geometria-espacial": "Geometria espacial"}, pausa=0)
+    assert r == {"em_cache": 2, "geradas_agora": 2, "erros": 0}
+    assert "Geometria espacial" in chamadas[0] and "Gabarito: B" in chamadas[0]
+    # segunda execução não chama a API de novo
+    r2 = resolucoes.gerar(itens, cache, chave="teste", pausa=0)
+    assert r2["geradas_agora"] == 0 and len(chamadas) == 2
+    import json
+    assert json.loads(cache.read_text(encoding="utf-8"))["2099-1"].startswith("Resolução de teste")

@@ -70,6 +70,10 @@ def merge(entrada: Path, web: Path, D: float = 1.0, sintetico: bool = False, inc
         depois = aud_mod.metricas_celula(cnt, items_all.loc[mask], D)
         a["rho_p_esperado_reajustado"] = depois.get("rho_p_esperado")
         a["itens_reajustados"] = int(items_all.loc[mask].get("parametros", pd.Series(dtype=object)).notna().sum())
+    cache_res = Path(entrada) / "resolucoes.json"
+    if cache_res.exists():
+        res = json.loads(cache_res.read_text(encoding="utf-8"))
+        items_all["resolucao"] = items_all["id"].map(res)
     priors = pri.skill_priors(counts_all, items_all) if not counts_all.empty else pd.DataFrame()
     web = Path(web)
     (web / "items").mkdir(parents=True, exist_ok=True)
@@ -101,6 +105,7 @@ def merge(entrada: Path, web: Path, D: float = 1.0, sintetico: bool = False, inc
         "auditoria": aud,
         "vinculo_texto": [dict(v, ano=r["ano"]) for r in relatorios for v in r["vinculo_texto"]],
         "conteudos": con.catalogo(),
+        "n_itens_com_resolucao": int(items_all["resolucao"].notna().sum()) if "resolucao" in items_all else 0,
         "cobertura_conteudos": (con.cobertura(items_all[items_all["enunciado"].notna()]).to_dict(orient="records")
                                 if "topicos" in items_all and "enunciado" in items_all else []),
         "diagnostico_monotonia": pri.monotonic_share(priors) if not priors.empty else None,

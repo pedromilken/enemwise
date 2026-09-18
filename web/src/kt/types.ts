@@ -14,6 +14,7 @@ export interface Item {
   p_banda?: (number | null)[]
   numero?: number
   topicos?: string[]
+  resolucao?: string   // resolução comentada, gerada no pipeline (enemwise resolucoes)
   enunciado?: string
   alternativas?: string[]
   descricao?: string[]
@@ -75,7 +76,11 @@ export interface Attempt {
   pBanda?: number
   // Medida indireta (autoavaliação): separa acerto por chute de acerto com domínio.
   confianca?: Confianca
+  // Dificuldade percebida pelo estudante; alimenta o intervalo de revisão.
+  dificuldade?: Dificuldade
 }
+
+export type Dificuldade = 'facil' | 'medio' | 'dificil'
 
 /** Habilidade 0: o INEP não informou CO_HABILIDADE para o item. */
 export const nomeHabilidade = (h: number | string) => (Number(h) === 0 ? 'habilidade não informada' : `H${h}`)

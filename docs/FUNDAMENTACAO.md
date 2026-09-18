@@ -96,3 +96,14 @@ Nada disso invalida a ideia do SPPA, que é boa e inspirou o painel. Mas o efeit
 Três níveis, do mais leve ao quase-resposta: o que a questão pede (conceito e conteúdo), o caminho (primeiro passo, ou uma alternativa eliminada), e a resolução quase completa (ou três alternativas eliminadas). Cada nível reduz o crédito do acerto para o BKT: 100%, 75%, 50% e 0%.
 
 A atualização com crédito parcial é a mistura dos dois posteriores, "acertou" e "errou", pesada pelo crédito. É a forma mais simples de registrar "provavelmente sabia, mas não sozinho", sem inventar um parâmetro novo. Nível 3 vale como erro: quando a dica entrega quase tudo, o acerto não informa sobre o domínio. O nível fica gravado na tentativa (`nivelDica`), então os relatórios e o dataset de uso conseguem separar acertos plenos de acertos assistidos.
+
+
+## Revisão espaçada por dificuldade percebida
+
+Depois de responder, o estudante marca a questão como fácil, média ou difícil. Esse julgamento define quando ela volta: erro em 1 dia, difícil em 3, média em 7, fácil em 21; sem julgamento, 10. A política de seleção reserva cerca de um terço das escolhas para revisões vencidas, priorizando erros, depois difíceis, depois as mais atrasadas. Uma questão fácil quase não se repete porque já há domínio; a difícil volta cedo porque é onde a memória mais decai.
+
+O julgamento de dificuldade também é uma medida de metacognição: cruzado com o acerto e com a chance prevista pela TRI, separa "difícil e errou" (lacuna real) de "difícil e acertou" (esforço produtivo) e de "fácil e errou" (desatenção ou concepção equivocada).
+
+## Trajetória no tempo
+
+Cada tentativa guarda o θ estimado antes da resposta. A trajetória diária da nota estimada sai desse registro sem recálculo, e é comparada aos resultados externos que o estudante registra (Enem anterior, simulados). A comparação vale como tendência: a estimativa mede domínio nas questões do app com dificuldade descontada; a nota real inclui tempo, cansaço e a prova inteira.

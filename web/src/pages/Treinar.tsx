@@ -4,7 +4,8 @@ import { level, pCorrect } from '../kt/bkt'
 import { type Bank, type Filtro, mastery, nextItem, paramsFor, record, setConfianca, theta } from '../kt/engine'
 import { scoreFromTheta } from '../kt/irt'
 import { disponiveis } from '../kt/conteudo'
-import { type Area, AREAS, type Confianca, type Item, type Meta, nomeHabilidade, skillKey, type StudentState } from '../kt/types'
+import { revisoesVencidas, setDificuldade } from '../kt/engine'
+import { type Area, AREAS, type Confianca, type Dificuldade, type Item, type Meta, nomeHabilidade, skillKey, type StudentState } from '../kt/types'
 import { ask, dicaLocal, linkRelato, NIVEIS_DICA, type NivelDica, DEFAULT_MODEL, getConfig, prompt, setConfig } from '../tutor'
 
 function Enunciado({ item }: { item: Item }) {
@@ -23,6 +24,24 @@ function Enunciado({ item }: { item: Item }) {
         </div>
       ))}
     </div>
+  )
+}
+
+/** Resolução comentada: vem do pipeline quando existe; senão, orienta pelo gabarito e pela habilidade. */
+function Resolucao({ item }: { item: Item }) {
+  if (!item.resolucao) {
+    return (
+      <details className="resolucao" open>
+        <summary>Resolução</summary>
+        <p><small>Esta questão ainda não tem resolução comentada. Use o tutor com IA para uma explicação, ou reveja a habilidade cobrada: {nomeHabilidade(item.habilidade)}.</small></p>
+      </details>
+    )
+  }
+  return (
+    <details className="resolucao" open>
+      <summary>Resolução</summary>
+      {item.resolucao.split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}
+    </details>
   )
 }
 
@@ -85,6 +104,8 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
   const [dicaBusy, setDicaBusy] = useState(false)
   const nivel = dicas.length as 0 | 1 | 2 | 3
 
+  const anterior = useMemo(() => (item ? [...student.tentativas].reverse().find((t) => t.itemId === item.id && !respondida) ?? null : null), [item?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const vencidas = useMemo(() => revisoesVencidas(student, bank).filter((r) => filtro(areas, edicao, topico)(r.item)), [student, bank, areas, edicao, topico]) // eslint-disable-line react-hooks/exhaustive-deps
   const k = item ? skillKey(item.area, item.habilidade) : null
   const pL = item && k ? mastery(student, bank, k) : 0
   // Previsão congelada no momento em que a questão aparece: é a aposta do modelo, não um recálculo pós-resposta.
@@ -154,6 +175,12 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
           </label>
         )}
       </div>
+      {vencidas.length > 0 && !respondida && (
+        <p className="conteudo-nota">
+          <strong>{vencidas.length} {vencidas.length === 1 ? 'questão vence' : 'questões vencem'} para revisão</strong> (erros e as que você achou difíceis voltam antes).
+          {' '}<button className="link" onClick={() => { setEscolha(null); setDicas([]); setItem(vencidas[0].item) }}>Revisar agora</button>
+        </p>
+      )}
       {conteudoAtual && (
         <p className="conteudo-nota">
           Treinando <strong>{conteudoAtual.nome}</strong> ({conteudoAtual.disciplina}). As questões vêm de {meta.areas[conteudoAtual.area]};
@@ -178,6 +205,12 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
                 <span className="questao-topico">{(item.topicos ?? []).map((t) => catalogo.find((c) => c.id === t)?.nome).filter(Boolean).join(' · ')}</span>
               )}
             </header>
+            {anterior && (
+              <p className="revisao-aviso">
+                Revisão: você respondeu esta questão em {new Date(anterior.ts).toLocaleDateString('pt-BR')} e {anterior.correta ? 'acertou' : 'errou'}
+                {anterior.dificuldade ? `, achando ${anterior.dificuldade === 'facil' ? 'fácil' : anterior.dificuldade === 'medio' ? 'média' : 'difícil'}` : ''}.
+              </p>
+            )}
             <Enunciado item={item} />
             <ol className="alternativas">
               {(item.alternativas ?? []).map((alt, i) => {
@@ -210,7 +243,16 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
                   <p className={escolha === item.gabarito ? 'veredito ok' : 'veredito'}>
                     {escolha === item.gabarito ? 'Resposta correta.' : `Gabarito: ${item.gabarito}.`}
                   </p>
+                  <Resolucao item={item} />
                   <button className="btn primary" onClick={proxima}>Próxima questão</button>
+                  <div className="confianca" role="group" aria-label="Como você sentiu esta questão?">
+                    <span>Como você sentiu esta questão?</span>
+                    {([['facil', 'Fácil'], ['medio', 'Média'], ['dificil', 'Difícil']] as [Dificuldade, string][]).map(([d, label]) => {
+                      const atual = [...student.tentativas].reverse().find((t) => t.itemId === item.id)?.dificuldade
+                      return <button key={d} className={atual === d ? 'chip on' : 'chip'} aria-pressed={atual === d}
+                        onClick={() => onChange(setDificuldade(student, item.id, d))}>{label}</button>
+                    })}
+                  </div>
                   <div className="confianca" role="group" aria-label="Quão seguro você estava?">
                     <span>Quão seguro você estava?</span>
                     {([['chute', 'Chutei'], ['duvida', 'Tive dúvida'], ['certeza', 'Tinha certeza']] as [Confianca, string][]).map(([c, label]) => {

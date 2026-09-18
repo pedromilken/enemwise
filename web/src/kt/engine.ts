@@ -1,6 +1,6 @@
 import { CREDITO_DICA, DEFAULT_LEARN, MASTERY, type BktParams, pCorrect, updateParcial } from './bkt'
 import { eap, info3pl, p3pl, thetaFromScore } from './irt'
-import { type Area, type Attempt, type Confianca, type Item, type SkillKey, type SkillPrior, type StudentState, skillKey } from './types'
+import { type Area, type Attempt, type Confianca, type Dificuldade, type Item, type SkillKey, type SkillPrior, type StudentState, skillKey } from './types'
 
 export interface Bank {
   items: Item[]
@@ -89,6 +89,14 @@ export function aplicarTentativa(s: StudentState, bank: Bank, t: Attempt): Stude
 
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4
 
+export function setDificuldade(s: StudentState, itemId: string, d: Dificuldade): StudentState {
+  const idx = s.tentativas.map((t) => t.itemId).lastIndexOf(itemId)
+  if (idx < 0) return s
+  const tentativas = s.tentativas.slice()
+  tentativas[idx] = { ...tentativas[idx], dificuldade: d }
+  return { ...s, tentativas }
+}
+
 export function setConfianca(s: StudentState, itemId: string, c: Confianca): StudentState {
   const idx = s.tentativas.map((t) => t.itemId).lastIndexOf(itemId)
   if (idx < 0) return s
@@ -113,7 +121,38 @@ export function theta(s: StudentState, bank: Bank, area: Area) {
  */
 export type Filtro = (it: Item) => boolean
 
-export function nextItem(s: StudentState, bank: Bank, filtro: Filtro = () => true, rng = Math.random): Item | null {
+/**
+ * Revisão espaçada por dificuldade percebida.
+ * Intervalos, em dias, até a questão voltar: quem errou revê logo; quem acertou e achou
+ * difícil revê cedo; quem acertou e achou fácil quase não revê, porque já domina.
+ */
+export const INTERVALO_REVISAO_DIAS: Record<'erro' | Dificuldade | 'sem', number> = { erro: 1, dificil: 3, medio: 7, facil: 21, sem: 10 }
+export const FRACAO_REVISAO = 0.35
+const DIA = 86_400_000
+
+export interface Revisao { item: Item; venceEm: number; atrasoDias: number; motivo: 'erro' | Dificuldade | 'sem' }
+
+export function proximaRevisao(t: Attempt): { venceEm: number; motivo: Revisao['motivo'] } {
+  const motivo: Revisao['motivo'] = !t.correta ? 'erro' : t.dificuldade ?? 'sem'
+  return { venceEm: t.ts + INTERVALO_REVISAO_DIAS[motivo] * DIA, motivo }
+}
+
+/** Questões cuja revisão venceu, da mais urgente para a menos (erro antes de difícil, e mais atrasada antes). */
+export function revisoesVencidas(s: StudentState, bank: Bank, agora = Date.now()): Revisao[] {
+  const ultima = new Map<string, Attempt>()
+  for (const t of s.tentativas) ultima.set(t.itemId, t)   // fica a última tentativa de cada questão
+  const ordem: Record<Revisao['motivo'], number> = { erro: 0, dificil: 1, medio: 2, sem: 3, facil: 4 }
+  return [...ultima.values()]
+    .map((t) => ({ t, item: bank.byId.get(t.itemId), ...proximaRevisao(t) }))
+    .filter((x): x is typeof x & { item: Item } => !!x.item && x.venceEm <= agora)
+    .map(({ item, venceEm, motivo }) => ({ item, venceEm, motivo, atrasoDias: Math.floor((agora - venceEm) / DIA) }))
+    .sort((a, b) => ordem[a.motivo] - ordem[b.motivo] || b.atrasoDias - a.atrasoDias)
+}
+
+export function nextItem(s: StudentState, bank: Bank, filtro: Filtro = () => true, rng = Math.random, agora = Date.now()): Item | null {
+  // revisão espaçada: questões vencidas voltam com prioridade proporcional à dificuldade sentida
+  const vencidas = revisoesVencidas(s, bank, agora).filter((r) => filtro(r.item))
+  if (vencidas.length && rng() < FRACAO_REVISAO) return vencidas[0].item
   const seen = new Set(s.tentativas.map((t) => t.itemId))
   const skills = [...bank.bySkill.entries()]
     .map(([k, its]) => ({ k, its: its.filter((i) => filtro(i) && !seen.has(i.id)), pL: mastery(s, bank, k) }))

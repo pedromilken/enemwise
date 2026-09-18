@@ -294,3 +294,40 @@ describe('evolução com resultados anteriores', () => {
     expect(mesclar(bank, a, b)!.historico!.map((h) => h.data)).toEqual(['2025-06-01', '2026-01-01'])
   })
 })
+
+import { INTERVALO_REVISAO_DIAS, revisoesVencidas, setDificuldade } from './engine'
+import { trajetoria } from './evolucao'
+
+describe('revisão espaçada por dificuldade percebida', () => {
+  const its = Array.from({ length: 6 }, (_, i) => item(String(i + 1), 3, 0))
+  const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+  const DIA = 86_400_000
+  it('erro volta em 1 dia, difícil em 3, fácil em 21; ordem: erro, difícil, mais atrasada', () => {
+    let s = newStudent(bank, 'a', 1)
+    s = record(s, bank, its[0], 'B', 0)                       // errou
+    s = setDificuldade(record(s, bank, its[1], 'A', 0), '2', 'dificil')
+    s = setDificuldade(record(s, bank, its[2], 'A', 0), '3', 'facil')
+    const t0 = s.tentativas[0].ts
+    expect(revisoesVencidas(s, bank, t0).map((r) => r.item.id)).toEqual([])
+    expect(revisoesVencidas(s, bank, t0 + 1.5 * DIA).map((r) => r.item.id)).toEqual(['1'])
+    expect(revisoesVencidas(s, bank, t0 + 4 * DIA).map((r) => r.item.id)).toEqual(['1', '2'])
+    expect(revisoesVencidas(s, bank, t0 + 22 * DIA).map((r) => r.item.id)).toEqual(['1', '2', '3'])
+    expect(INTERVALO_REVISAO_DIAS.facil).toBeGreaterThan(INTERVALO_REVISAO_DIAS.dificil)
+  })
+  it('a política reapresenta questões vencidas e ignora as não vencidas', () => {
+    let s = record(newStudent(bank, 'a', 1), bank, its[0], 'B', 0)
+    const t0 = s.tentativas[0].ts
+    const escolhaComRevisao = nextItem(s, bank, () => true, () => 0.1, t0 + 2 * DIA)  // rng abaixo da fração de revisão
+    expect(escolhaComRevisao?.id).toBe('1')
+    const semRevisao = nextItem(s, bank, () => true, () => 0.1, t0)                   // ainda não venceu
+    expect(semRevisao?.id).not.toBe('1')
+  })
+  it('a trajetória usa o θ registrado antes de cada resposta, um ponto por dia', () => {
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its) s = record(s, bank, it, 'A', 0)
+    const tr = trajetoria(s, bank, 'MT')
+    expect(tr.length).toBe(1)                     // tudo hoje: um ponto (a estimativa atual)
+    expect(tr[0].nota).toBeGreaterThan(500)       // seis acertos acima da faixa inicial
+    expect(trajetoria(s, bank, 'LC')).toEqual([])
+  })
+})

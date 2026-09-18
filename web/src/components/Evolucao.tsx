@@ -1,28 +1,34 @@
 import { useState } from 'react'
 import type { Bank } from '../kt/engine'
-import { evolucao, novoResultado } from '../kt/evolucao'
+import { evolucao, novoResultado, trajetoria } from '../kt/evolucao'
 import { META_PADRAO } from '../kt/feedback'
 import { type Area, AREAS, type Meta, type StudentState } from '../kt/types'
 
 const fmtData = (d: string) => { const [a, m, dia] = d.split('-'); return `${dia}/${m}/${a}` }
 
-/** Gráfico pequeno: resultados anteriores (pontos), estimativa atual (losango) e meta (linha tracejada). */
-function Sparkline({ pontos, estimativa, meta }: { pontos: { nota: number }[]; estimativa: number | null; meta: number }) {
-  const valores = [...pontos.map((p) => p.nota), ...(estimativa !== null ? [estimativa] : []), meta]
-  if (valores.length < 2) return null
+/**
+ * Gráfico no tempo: linha cinza = estimativa da plataforma dia a dia; pontos azuis = resultados
+ * registrados; losango = estimativa de agora; tracejado = meta.
+ */
+function Sparkline({ pontos, traj, estimativa, meta }: {
+  pontos: { data: string; nota: number }[]; traj: { data: string; nota: number }[]; estimativa: number | null; meta: number
+}) {
+  const todos = [...pontos, ...traj]
+  if (!todos.length) return null
+  const dias = (d: string) => Date.parse(d) / 86_400_000
+  const d0 = Math.min(...todos.map((p) => dias(p.data))), d1 = Math.max(...todos.map((p) => dias(p.data)), dias(new Date().toISOString().slice(0, 10)))
+  const valores = [...todos.map((p) => p.nota), ...(estimativa !== null ? [estimativa] : []), meta]
   const lo = Math.min(...valores) - 30, hi = Math.max(...valores) + 30
-  const W = 220, H = 56, n = pontos.length + (estimativa !== null ? 1 : 0)
-  const x = (i: number) => 12 + (n > 1 ? (i * (W - 24)) / (n - 1) : (W - 24) / 2)
+  const W = 260, H = 60
+  const x = (d: string) => 10 + (d1 > d0 ? ((dias(d) - d0) / (d1 - d0)) * (W - 20) : (W - 20) / 2)
   const y = (v: number) => H - 8 - ((v - lo) / (hi - lo)) * (H - 16)
-  const serie = pontos.map((p, i) => [x(i), y(p.nota)] as const)
-  const est = estimativa !== null ? ([x(n - 1), y(estimativa)] as const) : null
-  const linha = [...serie, ...(est ? [est] : [])].map(([px, py]) => `${px},${py}`).join(' ')
+  const hoje = new Date().toISOString().slice(0, 10)
   return (
-    <svg className="evolucao-svg" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="Evolução da nota">
+    <svg className="evolucao-svg" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label="Evolução da nota no tempo">
       <line x1={4} x2={W - 4} y1={y(meta)} y2={y(meta)} stroke="currentColor" strokeDasharray="3 3" opacity=".45" />
-      {linha.includes(' ') && <polyline points={linha} fill="none" stroke="var(--azul)" strokeWidth="2" opacity=".7" />}
-      {serie.map(([px, py], i) => <circle key={i} cx={px} cy={py} r="3.5" fill="var(--azul)" />)}
-      {est && <path d={`M${est[0]},${est[1] - 5} l5,5 l-5,5 l-5,-5 z`} fill="var(--tinta)" />}
+      {traj.length > 1 && <polyline points={traj.map((p) => `${x(p.data)},${y(p.nota)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="1.5" opacity=".5" />}
+      {pontos.map((p, i) => <circle key={i} cx={x(p.data)} cy={y(p.nota)} r="3.5" fill="var(--azul)" />)}
+      {estimativa !== null && <path d={`M${x(hoje)},${y(estimativa) - 5} l5,5 l-5,5 l-5,-5 z`} fill="var(--tinta)" />}
     </svg>
   )
 }
@@ -47,17 +53,17 @@ export function Evolucao({ bank, meta, student, onChange }: { bank: Bank; meta: 
 
   return (
     <div className="evolucao">
-      <p className="fineprint">Registre notas do Enem ou de simulados para comparar com a estimativa da plataforma. O losango é a estimativa atual da plataforma; a linha tracejada, a sua meta de {alvo}.</p>
-      {historico.length > 0 && (
+      <p className="fineprint">A linha cinza é a estimativa da plataforma ao longo dos dias de treino; os pontos azuis, notas do Enem ou de simulados que você registrar; o losango, a estimativa de hoje; o tracejado, a sua meta de {alvo}.</p>
+      {ev.some((a) => a.pontos.length || a.estimativa !== null) && (
         <table className="tabela-risco">
-          <thead><tr><th>Área</th><th>Registrado</th><th>Estimativa atual</th><th>Variação</th><th></th></tr></thead>
-          <tbody>{ev.filter((a) => a.pontos.length).map((a) => (
+          <thead><tr><th>Área</th><th>Registrado</th><th>Estimativa atual</th><th>Variação</th><th>No tempo</th></tr></thead>
+          <tbody>{ev.filter((a) => a.pontos.length || a.estimativa !== null).map((a) => (
             <tr key={a.area}>
               <td>{meta.areas[a.area]}</td>
-              <td>{a.ultimo ? `${a.ultimo.nota} (${a.ultimo.origem}, ${fmtData(a.ultimo.data)})` : '—'}</td>
+              <td>{a.ultimo ? `${a.ultimo.nota} (${a.ultimo.origem}, ${fmtData(a.ultimo.data)})` : <small>nenhum ainda</small>}</td>
               <td>{a.estimativa ?? <small>responda mais questões</small>}</td>
               <td>{a.variacao === null ? '—' : <span className={a.variacao >= 0 ? 'faixa ok' : 'faixa risco'}>{a.variacao > 0 ? '+' : ''}{a.variacao}</span>}</td>
-              <td><Sparkline pontos={a.pontos} estimativa={a.estimativa} meta={alvo} /></td>
+              <td><Sparkline pontos={a.pontos} traj={trajetoria(student, bank, a.area)} estimativa={a.estimativa} meta={alvo} /></td>
             </tr>
           ))}</tbody>
         </table>
