@@ -66,8 +66,8 @@ ${conts.map((c) => `<tr><td>${esc(c.nome)} <small>${esc(c.disciplina)}</small></
 </table>` : ''}
 
 <h2>Questões respondidas</h2>
-<table><tr><th>Quando</th><th>Questão</th><th>Área e habilidade</th><th>Conteúdo</th><th>Resposta</th><th>Dica</th><th>Confiança</th></tr>
-${[...s.tentativas].reverse().map((t) => { const it = bank.byId.get(t.itemId); return `<tr><td>${new Date(t.ts).toLocaleDateString('pt-BR')}</td><td>${it ? `ENEM ${it.ano}, nº ${it.numero ?? '?'}` : esc(t.itemId)}</td><td>${it ? `${esc(meta.areas[it.area])}, H${it.habilidade}` : ''}</td><td>${it ? (it.topicos ?? []).map(nome).map(esc).join(' · ') : ''}</td><td>${t.correta ? `<span class="tag ok">acertou (${esc(t.resposta)})</span>` : `<span class="tag risco">errou: ${esc(t.resposta)}, gabarito ${esc(it?.gabarito ?? '')}</span>`}</td><td>${nivelDe(t) ? `nível ${nivelDe(t)}` : '—'}</td><td>${CONF[t.confianca ?? ''] ?? '—'}</td></tr>` }).join('')}
+<table><tr><th>Quando</th><th>Questão</th><th>Área e habilidade</th><th>Conteúdo</th><th>Resposta</th><th>Dica</th><th>Ajudou?</th><th>Confiança</th></tr>
+${[...s.tentativas].reverse().map((t) => { const it = bank.byId.get(t.itemId); return `<tr><td>${new Date(t.ts).toLocaleDateString('pt-BR')}</td><td>${it ? `ENEM ${it.ano}, nº ${it.numero ?? '?'}` : esc(t.itemId)}</td><td>${it ? `${esc(meta.areas[it.area])}, H${it.habilidade}` : ''}</td><td>${it ? (it.topicos ?? []).map(nome).map(esc).join(' · ') : ''}</td><td>${t.correta ? `<span class="tag ok">acertou (${esc(t.resposta)})</span>` : `<span class="tag risco">errou: ${esc(t.resposta)}, gabarito ${esc(it?.gabarito ?? '')}</span>`}</td><td>${nivelDe(t) ? `nível ${nivelDe(t)}` : '—'}</td><td>${({ sim: 'sim', pouco: 'um pouco', nao: 'não' } as Record<string, string>)[t.dicaUtil ?? ''] ?? '—'}</td><td>${CONF[t.confianca ?? ''] ?? '—'}</td></tr>` }).join('')}
 </table>
 <p class="muted"><small>"Esperado" soma a chance de acerto prevista antes de cada resposta, considerando a dificuldade de cada questão. Rótulos só a partir de 3 questões por habilidade, 5 por competência e 4 por conteúdo. Fonte das descrições: ${esc(meta.fonte)} e Matriz de Referência do Enem (INEP).</small></p>
 </body></html>`
@@ -76,11 +76,11 @@ ${[...s.tentativas].reverse().map((t) => { const it = bank.byId.get(t.itemId); r
 export function respostasCsv(s: StudentState, bank: Bank, meta: Meta): string {
   const nome = (id: string) => (meta.conteudos ?? []).find((c) => c.id === id)?.nome ?? id
   const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const linhas = [['data', 'edicao', 'questao', 'area', 'habilidade', 'conteudos', 'resposta', 'gabarito', 'correta', 'nivel_dica', 'confianca', 'p_previsto'].join(';')]
+  const linhas = [['data', 'edicao', 'questao', 'area', 'habilidade', 'conteudos', 'resposta', 'gabarito', 'correta', 'nivel_dica', 'dica_util', 'confianca', 'p_previsto'].join(';')]
   for (const t of s.tentativas) {
     const it = bank.byId.get(t.itemId)
     linhas.push([new Date(t.ts).toISOString(), it?.ano, it?.numero, it ? meta.areas[it.area] : '', it?.habilidade,
-      (it?.topicos ?? []).map(nome).join(' | '), t.resposta, it?.gabarito, t.correta ? 1 : 0, nivelDe(t), t.confianca ?? '', t.pPrevisto ?? ''].map(q).join(';'))
+      (it?.topicos ?? []).map(nome).join(' | '), t.resposta, it?.gabarito, t.correta ? 1 : 0, nivelDe(t), t.dicaUtil ?? '', t.confianca ?? '', t.pPrevisto ?? ''].map(q).join(';'))
   }
   return '\ufeff' + linhas.join('\r\n')  // BOM para o Excel abrir com acentos certos
 }

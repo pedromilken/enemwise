@@ -184,15 +184,32 @@ export function eliminar(it: Item, quantas = 1): string[] {
   return Array.from({ length: Math.min(quantas, erradas.length) }, (_, i) => erradas[(inicio + i) % erradas.length])
 }
 
-/** Dica sem IA por nível: descrição da habilidade, depois eliminação progressiva. */
-export function dicaLocal(it: Item, nivel: NivelDica, descricaoHabilidade?: string, conteudo?: string): string {
+/** Estratégia por área, para a dica sem IA dizer algo além de eliminar alternativas. */
+const ESTRATEGIA: Record<string, string> = {
+  LC: 'Volte ao trecho e procure a palavra do comando (finalidade, crítica, efeito de sentido): a resposta costuma estar colada a ela.',
+  CH: 'Situe o documento no tempo e pergunte a quem ele serve; alternativas com termos absolutos costumam extrapolar o texto.',
+  CN: 'Escreva os dados com unidades e identifique a grandeza pedida antes de escolher a fórmula ou o processo.',
+  MT: 'Anote o que a pergunta pede, converta as unidades e estime a ordem de grandeza: isso já elimina alternativas.',
+}
+
+/**
+ * Dica sem IA, por nível: conteúdo e habilidade, depois competência e estratégia da área,
+ * e por fim eliminação de alternativas. Cada nível acrescenta algo novo, não só mais eliminação.
+ */
+export function dicaLocal(it: Item, nivel: NivelDica, descricaoHabilidade?: string, conteudo?: string,
+                          competencia?: string): string {
   if (nivel === 1) {
-    const partes = [conteudo ? `Conteúdo: ${conteudo}.` : '', descricaoHabilidade ? `A questão pede para ${descricaoHabilidade.charAt(0).toLowerCase()}${descricaoHabilidade.slice(1)}` : '']
+    const partes = [conteudo ? `Conteúdo: ${conteudo}.` : '',
+                    descricaoHabilidade ? `A questão pede para ${descricaoHabilidade.charAt(0).toLowerCase()}${descricaoHabilidade.slice(1)}` : '']
     return partes.filter(Boolean).join(' ') || 'Releia o comando da questão: o que exatamente está sendo pedido?'
   }
-  const n = nivel === 2 ? 1 : 3
-  const el = eliminar(it, n)
-  return n === 1 ? `A alternativa ${el[0]} não é a correta.` : `As alternativas ${el.join(', ')} não são a correta. Sobram duas.`
+  if (nivel === 2) {
+    const partes = [competencia ? `Competência cobrada: ${competencia}` : '', ESTRATEGIA[it.area] ?? '',
+                    `Uma alternativa que não serve: ${eliminar(it, 1)[0]}.`]
+    return partes.filter(Boolean).join(' ')
+  }
+  const el = eliminar(it, 3)
+  return `Sobram duas alternativas: as outras três (${el.join(', ')}) não respondem ao que foi pedido. Compare as que restaram com o comando da questão, palavra por palavra.`
 }
 
 /**

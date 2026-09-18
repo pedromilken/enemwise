@@ -89,6 +89,14 @@ export function aplicarTentativa(s: StudentState, bank: Bank, t: Attempt): Stude
 
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4
 
+export function setDicaUtil(s: StudentState, itemId: string, v: NonNullable<Attempt['dicaUtil']>): StudentState {
+  const idx = s.tentativas.map((t) => t.itemId).lastIndexOf(itemId)
+  if (idx < 0) return s
+  const tentativas = s.tentativas.slice()
+  tentativas[idx] = { ...tentativas[idx], dicaUtil: v }
+  return { ...s, tentativas }
+}
+
 export function setDificuldade(s: StudentState, itemId: string, d: Dificuldade): StudentState {
   const idx = s.tentativas.map((t) => t.itemId).lastIndexOf(itemId)
   if (idx < 0) return s

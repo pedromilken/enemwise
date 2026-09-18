@@ -4,7 +4,8 @@ import { level, pCorrect } from '../kt/bkt'
 import { type Bank, type Filtro, mastery, nextItem, paramsFor, record, setConfianca, theta } from '../kt/engine'
 import { scoreFromTheta } from '../kt/irt'
 import { disponiveis } from '../kt/conteudo'
-import { revisoesVencidas, setDificuldade } from '../kt/engine'
+import { competenciaDe } from '../matriz'
+import { revisoesVencidas, setDicaUtil, setDificuldade } from '../kt/engine'
 import { type Area, AREAS, type Confianca, type Dificuldade, type Item, type Meta, nomeHabilidade, skillKey, type StudentState } from '../kt/types'
 import { ask, dicaLocal, linkObjetivo, linkRelato, type LlmConfig, PROVEDORES, type Provedor, NIVEIS_DICA, type NivelDica, getConfig, prompt, setConfig } from '../tutor'
 
@@ -151,7 +152,7 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
   const [respondida, setRespondida] = useState(false)
   const [explicacaoIA, setExplicacaoIA] = useState<string | null>(null)
   const [explicandoIA, setExplicandoIA] = useState(false)
-  const [dicas, setDicas] = useState<{ texto: string; ia: boolean }[]>([])   // uma por nível já usado
+  const [dicas, setDicas] = useState<{ texto: string; ia: boolean; erro?: string }[]>([])   // uma por nível já usado
   const [dicaBusy, setDicaBusy] = useState(false)
   const nivel = dicas.length as 0 | 1 | 2 | 3
 
@@ -187,13 +188,18 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
     if (!item || nivel >= 3) return
     const prox = (nivel + 1) as NivelDica
     const local = dicaLocal(item, prox, descricoes[skillKey(item.area, item.habilidade)],
-      (item.topicos ?? []).map((t) => catalogo.find((c) => c.id === t)?.nome).filter(Boolean).join(', ') || undefined)
+      (item.topicos ?? []).map((t) => catalogo.find((c) => c.id === t)?.nome).filter(Boolean).join(', ') || undefined,
+      competenciaDe(item.area, item.habilidade)?.descricao)
     const cfg = getConfig()
     if (!cfg) { setDicas((d) => [...d, { texto: local, ia: false }]); return }
     setDicaBusy(true)
-    try { const txt = await ask(cfg, prompt('dica', item, undefined, prox)); setDicas((d) => [...d, { texto: txt, ia: true }]) }
-    catch { setDicas((d) => [...d, { texto: local, ia: false }]) }
-    finally { setDicaBusy(false) }
+    try {
+      const txt = await ask(cfg, prompt('dica', item, undefined, prox))
+      setDicas((d) => [...d, { texto: txt, ia: true }])
+    } catch (e) {
+      // o tutor falhou: entrega a dica do app e diz por quê, em vez de fingir que veio da IA
+      setDicas((d) => [...d, { texto: local, ia: false, erro: e instanceof Error ? e.message : 'tutor indisponível' }])
+    } finally { setDicaBusy(false) }
   }
 
   return (
@@ -281,9 +287,10 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
               <div key={i} className="dica">
                 <p className="dica-topo">
                   <strong>{NIVEIS_DICA[(i + 1) as NivelDica].rotulo}</strong>
-                  <small>{d.ia ? 'tutor com IA' : 'sem IA: banco de questões'}</small>
+                  <small>{d.ia ? 'tutor com IA' : d.erro ? 'sem IA: o tutor falhou' : 'sem IA: banco de questões'}</small>
                 </p>
                 <p>{d.texto}</p>
+                {d.erro && <small className="erro">{d.erro}</small>}
               </div>
             ))}
             <div className="acoes">
@@ -310,6 +317,16 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
                       finally { setExplicandoIA(false) }
                     }} />
                   <button className="btn primary" onClick={proxima}>Próxima questão</button>
+                  {nivel > 0 && (
+                    <div className="confianca" role="group" aria-label="As dicas ajudaram?">
+                      <span>As dicas ajudaram?</span>
+                      {([['sim', 'Sim'], ['pouco', 'Um pouco'], ['nao', 'Não']] as const).map(([v, label]) => {
+                        const atual = [...student.tentativas].reverse().find((t) => t.itemId === item.id)?.dicaUtil
+                        return <button key={v} className={atual === v ? 'chip on' : 'chip'} aria-pressed={atual === v}
+                          onClick={() => onChange(setDicaUtil(student, item.id, v))}>{label}</button>
+                      })}
+                    </div>
+                  )}
                   <div className="confianca" role="group" aria-label="Como você sentiu esta questão?">
                     <span>Como você sentiu esta questão?</span>
                     {([['facil', 'Fácil'], ['medio', 'Média'], ['dificil', 'Difícil']] as [Dificuldade, string][]).map(([d, label]) => {

@@ -80,6 +80,8 @@ export interface Attempt {
   confianca?: Confianca
   // Dificuldade percebida pelo estudante; alimenta o intervalo de revisão.
   dificuldade?: Dificuldade
+  // A dica ajudou? Só faz sentido quando houve dica; mede a utilidade do tutor.
+  dicaUtil?: 'sim' | 'pouco' | 'nao'
 }
 
 export type Dificuldade = 'facil' | 'medio' | 'dificil'

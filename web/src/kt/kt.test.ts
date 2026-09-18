@@ -420,3 +420,28 @@ describe('limpeza do texto do tutor', () => {
     expect(limpar('  texto normal  ')).toBe('texto normal')
   })
 })
+
+import { dicaLocal } from '../tutor'
+import { setDicaUtil } from './engine'
+
+describe('dicas sem IA e avaliação da dica', () => {
+  const it0 = { ...item('1', 8, 0), area: 'MT' as const, co_item: 7, gabarito: 'C' }
+  it('cada nível acrescenta algo novo, não só mais eliminação', () => {
+    const n1 = dicaLocal(it0, 1, 'Resolver situação-problema de espaço e forma.', 'Geometria espacial')
+    const n2 = dicaLocal(it0, 2, undefined, undefined, 'Utilizar o conhecimento geométrico para ler a realidade.')
+    const n3 = dicaLocal(it0, 3)
+    expect(n1).toMatch(/Geometria espacial/)
+    expect(n2).toMatch(/Competência cobrada/)
+    expect(n2).toMatch(/unidades|ordem de grandeza/)     // estratégia da área
+    expect(n3).toMatch(/Sobram duas/)
+    expect(new Set([n1, n2, n3]).size).toBe(3)
+    expect(n3).not.toContain(it0.gabarito + '.')          // nunca entrega o gabarito
+  })
+  it('registra se a dica ajudou na última tentativa da questão', () => {
+    const bank = makeBank([it0], [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+    let s = record(newStudent(bank, 'a', 1), bank, it0, 'C', 2)
+    s = setDicaUtil(s, '1', 'pouco')
+    expect(s.tentativas[0]).toMatchObject({ nivelDica: 2, dicaUtil: 'pouco' })
+    expect(setDicaUtil(s, 'inexistente', 'sim')).toBe(s)
+  })
+})
