@@ -69,14 +69,26 @@ const INSTRUCAO: Record<NivelDica, string> = {
   3: 'Dê uma dica forte (até 4 frases): conduza a resolução quase até o fim, deixando apenas o último passo para o estudante. Pode dizer quais alternativas NÃO fazem sentido e por quê, mas não nomeie a correta.',
 }
 
+const EXPLICACAO = `Escreva a resolução comentada, em português do Brasil, para quem acabou de responder:
+
+1. Comece dizendo o que a questão pede e qual conceito resolve.
+2. Mostre o raciocínio passo a passo até o gabarito. Em matemática e ciências, faça as contas.
+3. Diga, em uma frase cada, por que as alternativas erradas são tentadoras. Se o estudante errou, comece pela que ele marcou.
+4. Termine com "Para lembrar:" e uma frase com a ideia que resolve questões parecidas.
+
+Parágrafos curtos separados por linha em branco. Sem markdown, sem títulos, sem asteriscos. Escreva direto para o estudante, sem saudação.`
+
 export function prompt(kind: 'dica' | 'explicacao', it: Item, resposta?: string, nivel: NivelDica = 1) {
   const base = `Você é tutor de ENEM para estudantes do ensino médio brasileiro. Área ${it.area}, habilidade H${it.habilidade} da Matriz de Referência.`
   return kind === 'dica'
     ? `${base}\n${INSTRUCAO[nivel]}\n\n${questao(it)}`
-    : `${base}\nO estudante marcou ${resposta}. O gabarito é ${it.gabarito}. Explique em até 6 frases por que o gabarito está correto e, se ele errou, qual raciocínio provavelmente levou à alternativa marcada.\n\n${questao(it)}`
+    : `${base}\nO estudante marcou ${resposta ?? '?'}; o gabarito é ${it.gabarito}.\n${EXPLICACAO}\n\n${questao(it)}`
 }
 
 /** Monta requisição e leitura da resposta conforme o provedor. */
+const MAX_SAIDA = 1500
+const CORTADA = '\n\n[A resposta foi cortada pelo limite do provedor. Peça de novo ou escolha outro modelo.]'
+
 export function requisicao(cfg: LlmConfig, text: string): { url: string; init: RequestInit; ler: (d: unknown) => string } {
   const corpo = (o: object) => JSON.stringify(o)
   if (cfg.provedor === 'anthropic') {
@@ -86,10 +98,13 @@ export function requisicao(cfg: LlmConfig, text: string): { url: string; init: R
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-api-key': cfg.apiKey,
                    'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: corpo({ model: cfg.model, max_tokens: 600, messages: [{ role: 'user', content: text }] }),
+        body: corpo({ model: cfg.model, max_tokens: MAX_SAIDA, messages: [{ role: 'user', content: text }] }),
       },
-      ler: (d) => ((d as { content?: { type: string; text?: string }[] }).content ?? [])
-        .map((b) => (b.type === 'text' ? b.text ?? '' : '')).join('\n').trim(),
+      ler: (d) => {
+        const r = d as { content?: { type: string; text?: string }[]; stop_reason?: string }
+        const t = (r.content ?? []).map((b) => (b.type === 'text' ? b.text ?? '' : '')).join('\n').trim()
+        return r.stop_reason === 'max_tokens' ? t + CORTADA : t
+      },
     }
   }
   if (cfg.provedor === 'google') {
@@ -98,10 +113,15 @@ export function requisicao(cfg: LlmConfig, text: string): { url: string; init: R
       init: {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-goog-api-key': cfg.apiKey },
-        body: corpo({ contents: [{ parts: [{ text }] }], generationConfig: { maxOutputTokens: 800 } }),
+        // thinkingBudget 0: sem isso, o "pensamento" do Gemini consome o limite e a resposta chega cortada
+        body: corpo({ contents: [{ parts: [{ text }] }],
+                      generationConfig: { maxOutputTokens: MAX_SAIDA, thinkingConfig: { thinkingBudget: 0 } } }),
       },
-      ler: (d) => ((d as { candidates?: { content?: { parts?: { text?: string }[] } }[] }).candidates?.[0]?.content?.parts ?? [])
-        .map((p) => p.text ?? '').join('\n').trim(),
+      ler: (d) => {
+        const c = (d as { candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[] }).candidates?.[0]
+        const t = (c?.content?.parts ?? []).map((p) => p.text ?? '').join('\n').trim()
+        return c?.finishReason === 'MAX_TOKENS' ? t + CORTADA : t
+      },
     }
   }
   const base = (cfg.provedor === 'openai' ? 'https://api.openai.com/v1' : (cfg.baseUrl ?? '').replace(/\/+$/, ''))
@@ -110,9 +130,16 @@ export function requisicao(cfg: LlmConfig, text: string): { url: string; init: R
     init: {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
-      body: corpo({ model: cfg.model, max_tokens: 600, messages: [{ role: 'user', content: text }] }),
+      // OpenAI: modelos de raciocínio recusam max_tokens; os compatíveis (DeepSeek, Qwen) usam max_tokens
+      body: corpo(cfg.provedor === 'openai'
+        ? { model: cfg.model, max_completion_tokens: MAX_SAIDA, messages: [{ role: 'user', content: text }] }
+        : { model: cfg.model, max_tokens: MAX_SAIDA, messages: [{ role: 'user', content: text }] }),
     },
-    ler: (d) => ((d as { choices?: { message?: { content?: string } }[] }).choices?.[0]?.message?.content ?? '').trim(),
+    ler: (d) => {
+      const c = (d as { choices?: { message?: { content?: string }; finish_reason?: string }[] }).choices?.[0]
+      const t = (c?.message?.content ?? '').trim()
+      return c?.finish_reason === 'length' ? t + CORTADA : t
+    },
   }
 }
 

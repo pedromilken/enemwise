@@ -28,7 +28,7 @@ function Enunciado({ item }: { item: Item }) {
 }
 
 /** Resolução comentada: vem do pipeline quando existe; senão, orienta pelo gabarito e pela habilidade. */
-function Resolucao({ item }: { item: Item }) {
+function Resolucao({ item, explicacaoIA }: { item: Item; explicacaoIA?: string | null }) {
   const externo = linkObjetivo(item)
   const linkExterno = externo && (
     <p className="resolucao-externa">
@@ -40,10 +40,18 @@ function Resolucao({ item }: { item: Item }) {
       </small>
     </p>
   )
+  const doTutor = explicacaoIA && (
+    <div className="resolucao-ia">
+      <p className="resolucao-ia-titulo">Explicação do tutor com IA</p>
+      {explicacaoIA.split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}
+      <small>Gerada por um modelo de linguagem: confira as contas e compare com a resolução do Objetivo.</small>
+    </div>
+  )
   if (!item.resolucao) {
     return (
       <details className="resolucao" open>
         <summary>Resolução</summary>
+        {doTutor}
         {linkExterno}
         <p><small>Ainda não há resolução própria para esta questão. Habilidade cobrada: {nomeHabilidade(item.habilidade)}.</small></p>
       </details>
@@ -53,6 +61,7 @@ function Resolucao({ item }: { item: Item }) {
     <details className="resolucao" open>
       <summary>Resolução</summary>
       {item.resolucao.split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}
+      {doTutor}
       {linkExterno}
     </details>
   )
@@ -99,7 +108,9 @@ function FormularioTutor({ onPronto }: { onPronto: (c: LlmConfig) => void }) {
   )
 }
 
-function Tutor({ item, respondida, resposta }: { item: Item; respondida: boolean; resposta: string | null }) {
+function Tutor({ item, respondida, resposta, onTexto }: {
+  item: Item; respondida: boolean; resposta: string | null; onTexto: (t: string | null) => void
+}) {
   const [cfg, setCfg] = useState(getConfig())
   const [texto, setTexto] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -107,7 +118,7 @@ function Tutor({ item, respondida, resposta }: { item: Item; respondida: boolean
   async function explicar() {
     if (!cfg) return
     setBusy(true); setErro(null)
-    try { setTexto(await ask(cfg, prompt('explicacao', item, resposta ?? '?'))) }
+    try { const t = await ask(cfg, prompt('explicacao', item, resposta ?? '?')); setTexto(t); onTexto(t) }
     catch (e) { setErro(e instanceof Error ? e.message : 'Falha ao consultar o tutor.') }
     finally { setBusy(false) }
   }
@@ -121,7 +132,7 @@ function Tutor({ item, respondida, resposta }: { item: Item; respondida: boolean
           {respondida && <button className="btn" disabled={busy} onClick={explicar}>{busy ? 'Pensando…' : 'Explicar a resolução'}</button>}
           {!respondida && <small>Responda para liberar a explicação. Antes disso, use "Pedir dica".</small>}
           {erro && <p role="alert" className="erro">{erro}</p>}
-          {texto && <p className="tutor-texto">{texto}</p>}
+          {texto && <small>A explicação aparece abaixo da questão.</small>}
           <button className="link" onClick={() => { setConfig(null); setCfg(null) }}>Desativar tutor</button>
         </div>
       )}
@@ -144,6 +155,7 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
   const conteudoAtual = catalogo.find((c) => c.id === topico) ?? null
   const [escolha, setEscolha] = useState<string | null>(null)
   const [respondida, setRespondida] = useState(false)
+  const [explicacaoIA, setExplicacaoIA] = useState<string | null>(null)
   const [dicas, setDicas] = useState<string[]>([])   // uma por nível já usado
   const [dicaBusy, setDicaBusy] = useState(false)
   const nivel = dicas.length as 0 | 1 | 2 | 3
@@ -158,7 +170,7 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
   const banda = item?.p_banda?.[student.banda]
 
   function recomecar(as: Area[], ed: number | null, tp: string | null) {
-    setAreas(as); setEdicao(ed); setTopico(tp); setEscolha(null); setRespondida(false); setDicas([])
+    setAreas(as); setEdicao(ed); setTopico(tp); setEscolha(null); setRespondida(false); setDicas([]); setExplicacaoIA(null)
     setItem(nextItem(student, bank, filtro(as, ed, tp)))
   }
   // trocar de área derruba o conteúdo escolhido quando ele não pertence à nova seleção
@@ -173,7 +185,7 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
     setRespondida(true)
   }
   function proxima() {
-    setEscolha(null); setRespondida(false); setDicas([])
+    setEscolha(null); setRespondida(false); setDicas([]); setExplicacaoIA(null)
     setItem(nextItem(student, bank, filtro(areas, edicao, topico)))
   }
   async function pedirDica() {
@@ -287,7 +299,7 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
                   <p className={escolha === item.gabarito ? 'veredito ok' : 'veredito'}>
                     {escolha === item.gabarito ? 'Resposta correta.' : `Gabarito: ${item.gabarito}.`}
                   </p>
-                  <Resolucao item={item} />
+                  <Resolucao item={item} explicacaoIA={explicacaoIA} />
                   <button className="btn primary" onClick={proxima}>Próxima questão</button>
                   <div className="confianca" role="group" aria-label="Como você sentiu esta questão?">
                     <span>Como você sentiu esta questão?</span>
@@ -325,7 +337,7 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
               {th && <div><dt>Nota estimada em {item.area}</dt><dd>{Math.round(scoreFromTheta(th.mean))} ± {Math.round(100 * th.sd)}</dd></div>}
               <div><dt>Acerto casual da questão (TRI)</dt><dd>{Math.round(item.c * 100)}%</dd></div>
             </dl>
-            <Tutor key={item.id} item={item} respondida={respondida} resposta={escolha} />
+            <Tutor key={item.id} item={item} respondida={respondida} resposta={escolha} onTexto={setExplicacaoIA} />
           </aside>
         </div>
       )}

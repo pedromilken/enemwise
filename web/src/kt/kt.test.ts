@@ -383,3 +383,27 @@ describe('tutor com qualquer provedor', () => {
     for (const p of PROVEDORES) expect(p.exemplos.length + p.chaveEm.length).toBeGreaterThan(10)
   })
 })
+
+describe('tutor: limites de saída e resposta cortada', () => {
+  it('avisa quando o provedor corta a resposta, em qualquer dialeto', () => {
+    const a = requisicao({ provedor: 'anthropic', apiKey: 'k', model: 'm' }, 'x')
+    expect(a.ler({ content: [{ type: 'text', text: 'meio' }], stop_reason: 'max_tokens' })).toMatch(/cortada/)
+    expect(a.ler({ content: [{ type: 'text', text: 'inteiro' }], stop_reason: 'end_turn' })).toBe('inteiro')
+    const g = requisicao({ provedor: 'google', apiKey: 'k', model: 'gemini-2.5-flash' }, 'x')
+    expect(g.ler({ candidates: [{ content: { parts: [{ text: 'meio' }] }, finishReason: 'MAX_TOKENS' }] })).toMatch(/cortada/)
+    const o = requisicao({ provedor: 'openai', apiKey: 'k', model: 'gpt-4o-mini' }, 'x')
+    expect(o.ler({ choices: [{ message: { content: 'meio' }, finish_reason: 'length' }] })).toMatch(/cortada/)
+  })
+  it('Gemini vai sem "pensamento" para o limite valer para o texto', () => {
+    const g = requisicao({ provedor: 'google', apiKey: 'k', model: 'gemini-2.5-flash' }, 'x')
+    const body = JSON.parse(String(g.init.body))
+    expect(body.generationConfig.thinkingConfig.thinkingBudget).toBe(0)
+    expect(body.generationConfig.maxOutputTokens).toBeGreaterThanOrEqual(1500)
+  })
+  it('OpenAI usa max_completion_tokens; compatíveis usam max_tokens', () => {
+    expect(JSON.parse(String(requisicao({ provedor: 'openai', apiKey: 'k', model: 'o4-mini' }, 'x').init.body)))
+      .toHaveProperty('max_completion_tokens')
+    expect(JSON.parse(String(requisicao({ provedor: 'compativel', apiKey: 'k', model: 'deepseek-chat', baseUrl: 'https://a/v1' }, 'x').init.body)))
+      .toHaveProperty('max_tokens')
+  })
+})
