@@ -13,6 +13,7 @@ export interface Item {
   gabarito: string
   p_banda?: (number | null)[]
   numero?: number
+  aplicacao?: number
   topicos?: string[]
   resolucao?: string   // resolução comentada, gerada no pipeline (enemwise resolucoes)
   enunciado?: string

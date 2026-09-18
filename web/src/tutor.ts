@@ -74,6 +74,19 @@ export function dicaLocal(it: Item, nivel: NivelDica, descricaoHabilidade?: stri
   return n === 1 ? `A alternativa ${el[0]} não é a correta.` : `As alternativas ${el.join(', ')} não são a correta. Sobram duas.`
 }
 
+/**
+ * Página da resolução comentada do Curso Objetivo para a prova da questão (site externo).
+ * O ENEMWise não copia o texto, que é obra do Objetivo; só aponta para ele.
+ * Dia da prova: de 2009 a 2016, CH e CN no 1º dia; a partir de 2017, LC e CH no 1º dia.
+ */
+export function linkObjetivo(it: Item): string | null {
+  if (it.ano < 2009 || (it.aplicacao ?? 1) !== 1) return null
+  const primeiroDia = it.ano <= 2016 ? ['CH', 'CN'] : ['LC', 'CH']
+  const dia = primeiroDia.includes(it.area) ? 1 : 2
+  const sufixo = it.ano === 2020 ? '_presencial' : ''
+  return `https://www.curso-objetivo.br/vestibular/resolucao-comentada/enem/enem${it.ano}_${dia}dia${sufixo}.aspx`
+}
+
 /** Link para relatar problema na questão: abre uma issue já preenchida no repositório. */
 export function linkRelato(it: Item, repo = 'pedromilken/enemwise'): string {
   const titulo = `Problema na questão ${it.numero ?? ''} do ENEM ${it.ano} (${it.area}, id ${it.id})`

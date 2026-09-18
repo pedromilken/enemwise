@@ -6,7 +6,7 @@ import { scoreFromTheta } from '../kt/irt'
 import { disponiveis } from '../kt/conteudo'
 import { revisoesVencidas, setDificuldade } from '../kt/engine'
 import { type Area, AREAS, type Confianca, type Dificuldade, type Item, type Meta, nomeHabilidade, skillKey, type StudentState } from '../kt/types'
-import { ask, dicaLocal, linkRelato, NIVEIS_DICA, type NivelDica, DEFAULT_MODEL, getConfig, prompt, setConfig } from '../tutor'
+import { ask, dicaLocal, linkObjetivo, linkRelato, NIVEIS_DICA, type NivelDica, DEFAULT_MODEL, getConfig, prompt, setConfig } from '../tutor'
 
 function Enunciado({ item }: { item: Item }) {
   const partes = (item.enunciado ?? '').split('[[placeholder]]')
@@ -29,11 +29,18 @@ function Enunciado({ item }: { item: Item }) {
 
 /** Resolução comentada: vem do pipeline quando existe; senão, orienta pelo gabarito e pela habilidade. */
 function Resolucao({ item }: { item: Item }) {
+  const externo = linkObjetivo(item)
+  const linkExterno = externo && (
+    <p><small>
+      <a href={externo} target="_blank" rel="noopener noreferrer">Resolução comentada dos professores do Objetivo</a> (site externo; procure a questão {item.numero ?? ''} na página da prova).
+    </small></p>
+  )
   if (!item.resolucao) {
     return (
       <details className="resolucao" open>
         <summary>Resolução</summary>
-        <p><small>Esta questão ainda não tem resolução comentada. Use o tutor com IA para uma explicação, ou reveja a habilidade cobrada: {nomeHabilidade(item.habilidade)}.</small></p>
+        {linkExterno}
+        <p><small>Ainda não há resolução própria para esta questão. Habilidade cobrada: {nomeHabilidade(item.habilidade)}.</small></p>
       </details>
     )
   }
@@ -41,6 +48,7 @@ function Resolucao({ item }: { item: Item }) {
     <details className="resolucao" open>
       <summary>Resolução</summary>
       {item.resolucao.split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}
+      {linkExterno}
     </details>
   )
 }

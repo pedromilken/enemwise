@@ -331,3 +331,16 @@ describe('revisão espaçada por dificuldade percebida', () => {
     expect(trajetoria(s, bank, 'LC')).toEqual([])
   })
 })
+
+import { linkObjetivo } from '../tutor'
+
+describe('link para a resolução do Objetivo', () => {
+  it('escolhe o dia certo por edição e área e ignora a 2ª aplicação', () => {
+    expect(linkObjetivo({ ...item('1', 1, 0), ano: 2015, area: 'CH' })).toMatch(/enem2015_1dia\.aspx$/)
+    expect(linkObjetivo({ ...item('1', 1, 0), ano: 2015, area: 'MT' })).toMatch(/enem2015_2dia\.aspx$/)
+    expect(linkObjetivo({ ...item('1', 1, 0), ano: 2023, area: 'LC' })).toMatch(/enem2023_1dia\.aspx$/)
+    expect(linkObjetivo({ ...item('1', 1, 0), ano: 2023, area: 'CN' })).toMatch(/enem2023_2dia\.aspx$/)
+    expect(linkObjetivo({ ...item('1', 1, 0), ano: 2020, area: 'MT' })).toMatch(/enem2020_2dia_presencial\.aspx$/)
+    expect(linkObjetivo({ ...item('1', 1, 0), ano: 2016, area: 'MT', aplicacao: 2 })).toBeNull()
+  })
+})
