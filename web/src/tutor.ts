@@ -93,3 +93,16 @@ export function linkRelato(it: Item, repo = 'pedromilken/enemwise'): string {
   const corpo = `**Questão:** ENEM ${it.ano}, nº ${it.numero ?? '?'}, área ${it.area}, habilidade H${it.habilidade}, id \`${it.id}\`\n\n**O que está errado:** (texto cortado, fórmula ilegível, gabarito, imagem faltando...)\n\n**Como deveria ser:**`
   return `https://github.com/${repo}/issues/new?title=${encodeURIComponent(titulo)}&body=${encodeURIComponent(corpo)}&labels=quest%C3%A3o`
 }
+
+/**
+ * Página da resolução comentada do Curso Objetivo para a prova da questão (site externo).
+ * O ENEMWise não copia o texto, que é obra do Objetivo; só aponta para ele.
+ * Dia da prova: de 2009 a 2016, CH e CN no 1º dia; a partir de 2017, LC e CH no 1º dia.
+ */
+export function linkObjetivo(it: Item): string | null {
+  if (it.ano < 2009 || (it.aplicacao ?? 1) !== 1) return null
+  const primeiroDia = it.ano <= 2016 ? ['CH', 'CN'] : ['LC', 'CH']
+  const dia = primeiroDia.includes(it.area) ? 1 : 2
+  const sufixo = it.ano === 2020 ? '_presencial' : ''
+  return `https://www.curso-objetivo.br/vestibular/resolucao-comentada/enem/enem${it.ano}_${dia}dia${sufixo}.aspx`
+}
