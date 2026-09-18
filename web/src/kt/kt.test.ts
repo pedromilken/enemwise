@@ -352,3 +352,34 @@ describe('caderno indicado no link externo', () => {
     expect(String(it.numero).padStart(3, '0')).toBe('007')
   })
 })
+
+import { type LlmConfig, PROVEDORES, requisicao } from '../tutor'
+
+describe('tutor com qualquer provedor', () => {
+  const texto = 'explique'
+  const chama = (cfg: LlmConfig) => requisicao(cfg, texto)
+  it('Anthropic: endpoint, cabeçalho de chave e leitura de content', () => {
+    const r = chama({ provedor: 'anthropic', apiKey: 'k', model: 'claude-sonnet-5' })
+    expect(r.url).toBe('https://api.anthropic.com/v1/messages')
+    expect((r.init.headers as Record<string, string>)['x-api-key']).toBe('k')
+    expect(r.ler({ content: [{ type: 'text', text: 'oi' }] })).toBe('oi')
+  })
+  it('OpenAI e compatíveis: chat/completions com Bearer, e base própria', () => {
+    const o = chama({ provedor: 'openai', apiKey: 'k', model: 'gpt-4o-mini' })
+    expect(o.url).toBe('https://api.openai.com/v1/chat/completions')
+    expect((o.init.headers as Record<string, string>).authorization).toBe('Bearer k')
+    expect(o.ler({ choices: [{ message: { content: ' resposta ' } }] })).toBe('resposta')
+    const d = chama({ provedor: 'compativel', apiKey: 'k', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com/v1/' })
+    expect(d.url).toBe('https://api.deepseek.com/v1/chat/completions')   // barra final removida
+  })
+  it('Google: modelo na URL e leitura de candidates', () => {
+    const g = chama({ provedor: 'google', apiKey: 'k', model: 'gemini-2.5-flash' })
+    expect(g.url).toMatch(/models\/gemini-2\.5-flash:generateContent$/)
+    expect((g.init.headers as Record<string, string>)['x-goog-api-key']).toBe('k')
+    expect(g.ler({ candidates: [{ content: { parts: [{ text: 'olá' }] } }] })).toBe('olá')
+  })
+  it('todo provedor listado tem exemplo de modelo e origem da chave', () => {
+    expect(PROVEDORES.map((p) => p.id)).toEqual(['anthropic', 'openai', 'google', 'compativel'])
+    for (const p of PROVEDORES) expect(p.exemplos.length + p.chaveEm.length).toBeGreaterThan(10)
+  })
+})

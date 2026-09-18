@@ -6,7 +6,7 @@ import { scoreFromTheta } from '../kt/irt'
 import { disponiveis } from '../kt/conteudo'
 import { revisoesVencidas, setDificuldade } from '../kt/engine'
 import { type Area, AREAS, type Confianca, type Dificuldade, type Item, type Meta, nomeHabilidade, skillKey, type StudentState } from '../kt/types'
-import { ask, dicaLocal, linkObjetivo, linkRelato, NIVEIS_DICA, type NivelDica, DEFAULT_MODEL, getConfig, prompt, setConfig } from '../tutor'
+import { ask, dicaLocal, linkObjetivo, linkRelato, type LlmConfig, PROVEDORES, type Provedor, NIVEIS_DICA, type NivelDica, getConfig, prompt, setConfig } from '../tutor'
 
 function Enunciado({ item }: { item: Item }) {
   const partes = (item.enunciado ?? '').split('[[placeholder]]')
@@ -58,6 +58,47 @@ function Resolucao({ item }: { item: Item }) {
   )
 }
 
+function FormularioTutor({ onPronto }: { onPronto: (c: LlmConfig) => void }) {
+  const [prov, setProv] = useState<Provedor>('anthropic')
+  const info = PROVEDORES.find((p) => p.id === prov)!
+  return (
+    <form className="stack" onSubmit={(e) => {
+      e.preventDefault()
+      const f = new FormData(e.currentTarget)
+      onPronto({
+        provedor: prov,
+        apiKey: String(f.get('k')).trim(),
+        model: String(f.get('m')).trim() || info.modeloPadrao,
+        baseUrl: prov === 'compativel' ? String(f.get('u')).trim() : undefined,
+      })
+    }}>
+      <label className="field"><span>Provedor</span>
+        <select value={prov} onChange={(e) => setProv(e.target.value as Provedor)}>
+          {PROVEDORES.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </select>
+      </label>
+      {prov === 'compativel' && (
+        <label className="field"><span>Endereço base da API</span>
+          <input name="u" required placeholder="https://api.deepseek.com/v1" autoComplete="off" />
+        </label>
+      )}
+      <label className="field"><span>Chave da API</span>
+        <input name="k" type="password" required autoComplete="off" />
+        <small>Pegue em {info.chaveEm}. {info.ajuda}</small>
+      </label>
+      <label className="field" key={prov}><span>Modelo</span>
+        <input name="m" defaultValue={info.modeloPadrao} placeholder={info.exemplos} />
+        <small>Exemplos: {info.exemplos}.</small>
+      </label>
+      <button className="btn" type="submit">Ativar tutor</button>
+      <small>
+        A chave fica só nesta aba do navegador e é apagada ao fechá-la. O navegador fala direto com o provedor:
+        nada passa por um servidor do ENEMWise, e o uso é cobrado na sua conta.
+      </small>
+    </form>
+  )
+}
+
 function Tutor({ item, respondida, resposta }: { item: Item; respondida: boolean; resposta: string | null }) {
   const [cfg, setCfg] = useState(getConfig())
   const [texto, setTexto] = useState<string | null>(null)
@@ -74,17 +115,7 @@ function Tutor({ item, respondida, resposta }: { item: Item; respondida: boolean
     <details className="tutor">
       <summary>Tutor com IA</summary>
       {!cfg ? (
-        <form className="stack" onSubmit={(e) => {
-          e.preventDefault()
-          const f = new FormData(e.currentTarget)
-          const c = { apiKey: String(f.get('k')), model: String(f.get('m')) || DEFAULT_MODEL }
-          setConfig(c); setCfg(c)
-        }}>
-          <label className="field"><span>Chave da API da Anthropic</span><input name="k" type="password" required autoComplete="off" /></label>
-          <label className="field"><span>Modelo</span><input name="m" defaultValue={DEFAULT_MODEL} /></label>
-          <button className="btn" type="submit">Ativar tutor</button>
-          <small>A chave fica só nesta aba do navegador e é apagada ao fechá-la.</small>
-        </form>
+        <FormularioTutor onPronto={(c) => { setConfig(c); setCfg(c) }} />
       ) : (
         <div className="stack">
           {respondida && <button className="btn" disabled={busy} onClick={explicar}>{busy ? 'Pensando…' : 'Explicar a resolução'}</button>}

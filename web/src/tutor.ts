@@ -1,16 +1,52 @@
 import type { Item } from './kt/types'
 
 /**
- * Tutor opcional com LLM, modo "traga sua chave".
+ * Tutor opcional com LLM, modo "traga sua chave", com qualquer provedor.
  * GitHub Pages é estático: não há servidor para guardar segredo. A chave fica no
- * sessionStorage deste navegador e vai direto para a API, nunca para o repositório.
+ * sessionStorage deste navegador e vai direto para a API do provedor escolhido,
+ * nunca para o repositório.
+ *
+ * Quase todos falam o dialeto de "chat completions" da OpenAI; a Anthropic e o Google
+ * têm formato próprio. Os três estão cobertos abaixo, e "Outro (compatível)" aceita
+ * qualquer serviço que siga o dialeto da OpenAI, inclusive um local.
  */
 const K = 'enemwise:llm'
-export interface LlmConfig { apiKey: string; model: string }
+
+export type Provedor = 'anthropic' | 'openai' | 'google' | 'compativel'
+
+export interface ProvedorInfo {
+  id: Provedor
+  nome: string
+  modeloPadrao: string
+  exemplos: string
+  endpointFixo?: string
+  ajuda: string
+  chaveEm: string
+}
+
+export const PROVEDORES: ProvedorInfo[] = [
+  { id: 'anthropic', nome: 'Anthropic (Claude)', modeloPadrao: 'claude-sonnet-5',
+    exemplos: 'claude-sonnet-5, claude-haiku-4-5-20251001', chaveEm: 'console.anthropic.com',
+    ajuda: 'A chave começa com sk-ant-.' },
+  { id: 'openai', nome: 'OpenAI (GPT)', modeloPadrao: 'gpt-4o-mini',
+    exemplos: 'gpt-4o-mini, gpt-4o, o4-mini', chaveEm: 'platform.openai.com',
+    ajuda: 'A chave começa com sk-.' },
+  { id: 'google', nome: 'Google (Gemini)', modeloPadrao: 'gemini-2.5-flash',
+    exemplos: 'gemini-2.5-flash, gemini-2.5-pro', chaveEm: 'aistudio.google.com',
+    ajuda: 'Pegue a chave no Google AI Studio.' },
+  { id: 'compativel', nome: 'Outro compatível com OpenAI', modeloPadrao: '',
+    exemplos: 'deepseek-chat, qwen-plus, llama-3.3-70b, modelos locais', chaveEm: 'seu provedor',
+    ajuda: 'Informe o endereço base da API, por exemplo https://api.deepseek.com/v1 ou https://dashscope-intl.aliyuncs.com/compatible-mode/v1.' },
+]
+
+export interface LlmConfig { provedor: Provedor; apiKey: string; model: string; baseUrl?: string }
 export const DEFAULT_MODEL = 'claude-sonnet-5'
 
 export const getConfig = (): LlmConfig | null => {
-  try { return JSON.parse(sessionStorage.getItem(K) ?? 'null') } catch { return null }
+  try {
+    const c = JSON.parse(sessionStorage.getItem(K) ?? 'null')
+    return c && typeof c === 'object' ? { provedor: 'anthropic', ...c } : null   // configs antigas não tinham provedor
+  } catch { return null }
 }
 export const setConfig = (c: LlmConfig | null) =>
   c ? sessionStorage.setItem(K, JSON.stringify(c)) : sessionStorage.removeItem(K)
@@ -40,20 +76,65 @@ export function prompt(kind: 'dica' | 'explicacao', it: Item, resposta?: string,
     : `${base}\nO estudante marcou ${resposta}. O gabarito é ${it.gabarito}. Explique em até 6 frases por que o gabarito está correto e, se ele errou, qual raciocínio provavelmente levou à alternativa marcada.\n\n${questao(it)}`
 }
 
-export async function ask(cfg: LlmConfig, text: string): Promise<string> {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': cfg.apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+/** Monta requisição e leitura da resposta conforme o provedor. */
+export function requisicao(cfg: LlmConfig, text: string): { url: string; init: RequestInit; ler: (d: unknown) => string } {
+  const corpo = (o: object) => JSON.stringify(o)
+  if (cfg.provedor === 'anthropic') {
+    return {
+      url: 'https://api.anthropic.com/v1/messages',
+      init: {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-api-key': cfg.apiKey,
+                   'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: corpo({ model: cfg.model, max_tokens: 600, messages: [{ role: 'user', content: text }] }),
+      },
+      ler: (d) => ((d as { content?: { type: string; text?: string }[] }).content ?? [])
+        .map((b) => (b.type === 'text' ? b.text ?? '' : '')).join('\n').trim(),
+    }
+  }
+  if (cfg.provedor === 'google') {
+    return {
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent`,
+      init: {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': cfg.apiKey },
+        body: corpo({ contents: [{ parts: [{ text }] }], generationConfig: { maxOutputTokens: 800 } }),
+      },
+      ler: (d) => ((d as { candidates?: { content?: { parts?: { text?: string }[] } }[] }).candidates?.[0]?.content?.parts ?? [])
+        .map((p) => p.text ?? '').join('\n').trim(),
+    }
+  }
+  const base = (cfg.provedor === 'openai' ? 'https://api.openai.com/v1' : (cfg.baseUrl ?? '').replace(/\/+$/, ''))
+  return {
+    url: `${base}/chat/completions`,
+    init: {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
+      body: corpo({ model: cfg.model, max_tokens: 600, messages: [{ role: 'user', content: text }] }),
     },
-    body: JSON.stringify({ model: cfg.model, max_tokens: 600, messages: [{ role: 'user', content: text }] }),
-  })
-  if (!r.ok) throw new Error(`A API respondeu ${r.status}. Confira a chave e o modelo.`)
-  const data = await r.json()
-  return data.content.map((b: { type: string; text?: string }) => (b.type === 'text' ? b.text : '')).join('\n')
+    ler: (d) => ((d as { choices?: { message?: { content?: string } }[] }).choices?.[0]?.message?.content ?? '').trim(),
+  }
+}
+
+export async function ask(cfg: LlmConfig, text: string): Promise<string> {
+  if (cfg.provedor === 'compativel' && !cfg.baseUrl) throw new Error('Informe o endereço base da API do seu provedor.')
+  const { url, init, ler } = requisicao(cfg, text)
+  let r: Response
+  try {
+    r = await fetch(url, init)
+  } catch {
+    // provedores sem CORS liberado bloqueiam a chamada direta do navegador
+    throw new Error('Não foi possível falar com o provedor. Ele pode não permitir chamadas direto do navegador (CORS).')
+  }
+  if (!r.ok) {
+    const detalhe = r.status === 401 || r.status === 403 ? 'Confira a chave.'
+      : r.status === 404 ? 'Confira o nome do modelo e, se for o caso, o endereço base.'
+      : r.status === 429 ? 'Limite de uso atingido; espere um pouco.' : 'Confira a chave e o modelo.'
+    throw new Error(`A API respondeu ${r.status}. ${detalhe}`)
+  }
+  const texto = ler(await r.json())
+  if (!texto) throw new Error('O provedor respondeu sem texto. Tente outro modelo.')
+  return texto
 }
 
 /** Dica sem IA: elimina alternativas erradas, em ordem estável por questão. */
