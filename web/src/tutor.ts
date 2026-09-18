@@ -63,13 +63,26 @@ export const NIVEIS_DICA: Record<NivelDica, { rotulo: string; credito: string }>
   3: { rotulo: 'Quase a resposta', credito: '0%' },
 }
 
+const SEM_ENFEITE = 'Comece direto pelo conteúdo, sem saudação e sem se apresentar. Texto corrido, sem markdown, sem asteriscos, sem títulos.'
+
 const INSTRUCAO: Record<NivelDica, string> = {
-  1: 'Dê UMA dica leve (até 2 frases): diga que conceito ou habilidade a questão cobra e o que ela está pedindo, sem indicar caminho de resolução nem falar de alternativas.',
-  2: 'Dê uma dica média (até 3 frases): aponte o caminho de resolução, o primeiro passo e a informação do enunciado que importa. Não revele a alternativa correta.',
-  3: 'Dê uma dica forte (até 4 frases): conduza a resolução quase até o fim, deixando apenas o último passo para o estudante. Pode dizer quais alternativas NÃO fazem sentido e por quê, mas não nomeie a correta.',
+  1: `Dê UMA dica leve, em 2 frases completas: diga que conceito a questão cobra e o que ela pede. Não indique caminho de resolução nem fale de alternativas. ${SEM_ENFEITE}`,
+  2: `Dê uma dica média, em até 3 frases completas: aponte o caminho, o primeiro passo e a informação do enunciado que importa. Não revele a alternativa correta. ${SEM_ENFEITE}`,
+  3: `Dê uma dica forte, em até 4 frases completas: conduza o raciocínio quase até o fim, deixando o último passo para o estudante. Pode dizer quais alternativas não fazem sentido e por quê, mas não nomeie a correta. ${SEM_ENFEITE}`,
 }
 
-const EXPLICACAO = `Escreva a resolução comentada, em português do Brasil, para quem acabou de responder:
+/** Modelos insistem em markdown mesmo quando o pedido proíbe; tiramos os enfeites que sobram. */
+export function limpar(texto: string): string {
+  return texto
+    .replace(/\*\*(.+?)\*\*/gs, '$1')
+    .replace(/(^|\s)\*(\S.*?\S)\*(?=\s|$)/gs, '$1$2')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/^\s*[-*]\s+/gm, '• ')
+    .replace(/^(olá|ola|oi|fala|e aí|eai|beleza)[^.!?\n]*[.!?]\s*/i, '')
+    .trim()
+}
+
+const EXPLICACAO = `Escreva a resolução comentada, em português do Brasil, para quem acabou de responder. Sem saudação e sem se apresentar:
 
 1. Comece dizendo o que a questão pede e qual conceito resolve.
 2. Mostre o raciocínio passo a passo até o gabarito. Em matemática e ciências, faça as contas.
@@ -159,7 +172,7 @@ export async function ask(cfg: LlmConfig, text: string): Promise<string> {
       : r.status === 429 ? 'Limite de uso atingido; espere um pouco.' : 'Confira a chave e o modelo.'
     throw new Error(`A API respondeu ${r.status}. ${detalhe}`)
   }
-  const texto = ler(await r.json())
+  const texto = limpar(ler(await r.json()))
   if (!texto) throw new Error('O provedor respondeu sem texto. Tente outro modelo.')
   return texto
 }

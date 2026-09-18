@@ -28,7 +28,9 @@ function Enunciado({ item }: { item: Item }) {
 }
 
 /** Resolução comentada: vem do pipeline quando existe; senão, orienta pelo gabarito e pela habilidade. */
-function Resolucao({ item, explicacaoIA }: { item: Item; explicacaoIA?: string | null }) {
+function Resolucao({ item, explicacaoIA, onExplicar, explicando, temTutor }: {
+  item: Item; explicacaoIA?: string | null; onExplicar?: () => void; explicando?: boolean; temTutor?: boolean
+}) {
   const externo = linkObjetivo(item)
   const linkExterno = externo && (
     <p className="resolucao-externa">
@@ -39,6 +41,9 @@ function Resolucao({ item, explicacaoIA }: { item: Item; explicacaoIA?: string |
         {' '}A numeração e a ordem mudam conforme a cor do caderno.
       </small>
     </p>
+  )
+  const botaoIA = !explicacaoIA && temTutor && onExplicar && (
+    <p><button className="btn" disabled={explicando} onClick={onExplicar}>{explicando ? 'Pensando…' : 'Explicar o raciocínio com o tutor'}</button></p>
   )
   const doTutor = explicacaoIA && (
     <div className="resolucao-ia">
@@ -51,6 +56,7 @@ function Resolucao({ item, explicacaoIA }: { item: Item; explicacaoIA?: string |
     return (
       <details className="resolucao" open>
         <summary>Resolução</summary>
+        {botaoIA}
         {doTutor}
         {linkExterno}
         <p><small>Ainda não há resolução própria para esta questão. Habilidade cobrada: {nomeHabilidade(item.habilidade)}.</small></p>
@@ -61,6 +67,7 @@ function Resolucao({ item, explicacaoIA }: { item: Item; explicacaoIA?: string |
     <details className="resolucao" open>
       <summary>Resolução</summary>
       {item.resolucao.split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}
+      {botaoIA}
       {doTutor}
       {linkExterno}
     </details>
@@ -108,20 +115,8 @@ function FormularioTutor({ onPronto }: { onPronto: (c: LlmConfig) => void }) {
   )
 }
 
-function Tutor({ item, respondida, resposta, onTexto }: {
-  item: Item; respondida: boolean; resposta: string | null; onTexto: (t: string | null) => void
-}) {
+function Tutor({ respondida }: { respondida: boolean }) {
   const [cfg, setCfg] = useState(getConfig())
-  const [texto, setTexto] = useState<string | null>(null)
-  const [erro, setErro] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  async function explicar() {
-    if (!cfg) return
-    setBusy(true); setErro(null)
-    try { const t = await ask(cfg, prompt('explicacao', item, resposta ?? '?')); setTexto(t); onTexto(t) }
-    catch (e) { setErro(e instanceof Error ? e.message : 'Falha ao consultar o tutor.') }
-    finally { setBusy(false) }
-  }
   return (
     <details className="tutor">
       <summary>Tutor com IA</summary>
@@ -129,10 +124,9 @@ function Tutor({ item, respondida, resposta, onTexto }: {
         <FormularioTutor onPronto={(c) => { setConfig(c); setCfg(c) }} />
       ) : (
         <div className="stack">
-          {respondida && <button className="btn" disabled={busy} onClick={explicar}>{busy ? 'Pensando…' : 'Explicar a resolução'}</button>}
-          {!respondida && <small>Responda para liberar a explicação. Antes disso, use "Pedir dica".</small>}
-          {erro && <p role="alert" className="erro">{erro}</p>}
-          {texto && <small>A explicação aparece abaixo da questão.</small>}
+          <small>
+            Tutor ligado. As dicas passam a vir dele, e {respondida ? 'a explicação do raciocínio fica no bloco Resolução, abaixo da questão.' : 'depois de responder você pode pedir a explicação do raciocínio na Resolução.'}
+          </small>
           <button className="link" onClick={() => { setConfig(null); setCfg(null) }}>Desativar tutor</button>
         </div>
       )}
@@ -156,7 +150,8 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
   const [escolha, setEscolha] = useState<string | null>(null)
   const [respondida, setRespondida] = useState(false)
   const [explicacaoIA, setExplicacaoIA] = useState<string | null>(null)
-  const [dicas, setDicas] = useState<string[]>([])   // uma por nível já usado
+  const [explicandoIA, setExplicandoIA] = useState(false)
+  const [dicas, setDicas] = useState<{ texto: string; ia: boolean }[]>([])   // uma por nível já usado
   const [dicaBusy, setDicaBusy] = useState(false)
   const nivel = dicas.length as 0 | 1 | 2 | 3
 
@@ -194,10 +189,10 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
     const local = dicaLocal(item, prox, descricoes[skillKey(item.area, item.habilidade)],
       (item.topicos ?? []).map((t) => catalogo.find((c) => c.id === t)?.nome).filter(Boolean).join(', ') || undefined)
     const cfg = getConfig()
-    if (!cfg) { setDicas((d) => [...d, local]); return }
+    if (!cfg) { setDicas((d) => [...d, { texto: local, ia: false }]); return }
     setDicaBusy(true)
-    try { const txt = await ask(cfg, prompt('dica', item, undefined, prox)); setDicas((d) => [...d, txt]) }
-    catch { setDicas((d) => [...d, local]) }
+    try { const txt = await ask(cfg, prompt('dica', item, undefined, prox)); setDicas((d) => [...d, { texto: txt, ia: true }]) }
+    catch { setDicas((d) => [...d, { texto: local, ia: false }]) }
     finally { setDicaBusy(false) }
   }
 
@@ -283,7 +278,13 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
               })}
             </ol>
             {dicas.map((d, i) => (
-              <p key={i} className="dica"><strong>{NIVEIS_DICA[(i + 1) as NivelDica].rotulo}.</strong> {d}</p>
+              <div key={i} className="dica">
+                <p className="dica-topo">
+                  <strong>{NIVEIS_DICA[(i + 1) as NivelDica].rotulo}</strong>
+                  <small>{d.ia ? 'tutor com IA' : 'sem IA: banco de questões'}</small>
+                </p>
+                <p>{d.texto}</p>
+              </div>
             ))}
             <div className="acoes">
               {!respondida ? (
@@ -299,7 +300,15 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
                   <p className={escolha === item.gabarito ? 'veredito ok' : 'veredito'}>
                     {escolha === item.gabarito ? 'Resposta correta.' : `Gabarito: ${item.gabarito}.`}
                   </p>
-                  <Resolucao item={item} explicacaoIA={explicacaoIA} />
+                  <Resolucao item={item} explicacaoIA={explicacaoIA} temTutor={!!getConfig()} explicando={explicandoIA}
+                    onExplicar={async () => {
+                      const cfg = getConfig()
+                      if (!cfg || !item) return
+                      setExplicandoIA(true)
+                      try { setExplicacaoIA(await ask(cfg, prompt('explicacao', item, escolha ?? '?'))) }
+                      catch (e) { setExplicacaoIA(e instanceof Error ? e.message : 'Falha ao consultar o tutor.') }
+                      finally { setExplicandoIA(false) }
+                    }} />
                   <button className="btn primary" onClick={proxima}>Próxima questão</button>
                   <div className="confianca" role="group" aria-label="Como você sentiu esta questão?">
                     <span>Como você sentiu esta questão?</span>
@@ -337,7 +346,7 @@ export function Treinar({ bank, meta, student, onChange, descricoes = {}, itemIn
               {th && <div><dt>Nota estimada em {item.area}</dt><dd>{Math.round(scoreFromTheta(th.mean))} ± {Math.round(100 * th.sd)}</dd></div>}
               <div><dt>Acerto casual da questão (TRI)</dt><dd>{Math.round(item.c * 100)}%</dd></div>
             </dl>
-            <Tutor key={item.id} item={item} respondida={respondida} resposta={escolha} onTexto={setExplicacaoIA} />
+            <Tutor respondida={respondida} />
           </aside>
         </div>
       )}

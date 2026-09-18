@@ -407,3 +407,16 @@ describe('tutor: limites de saída e resposta cortada', () => {
       .toHaveProperty('max_tokens')
   })
 })
+
+import { limpar } from '../tutor'
+
+describe('limpeza do texto do tutor', () => {
+  it('tira markdown, saudação e vira texto corrido', () => {
+    expect(limpar('Olá! Essa questão pede a **fundamentação do poder**.')).toBe('Essa questão pede a fundamentação do poder.')
+    expect(limpar('Fala, galera! Beleza? Na área de CH, a habilidade H24 trata de cidadania.'))
+      .toBe('Beleza? Na área de CH, a habilidade H24 trata de cidadania.')
+    expect(limpar('## Resolução\n- primeiro passo\n- segundo passo')).toBe('Resolução\n• primeiro passo\n• segundo passo')
+    expect(limpar('O valor é *aproximado* e vale 5.')).toBe('O valor é aproximado e vale 5.')
+    expect(limpar('  texto normal  ')).toBe('texto normal')
+  })
+})
