@@ -24,6 +24,7 @@ export function mesclar(bank: Bank, local: StudentState | null, remoto: StudentS
   let s: StudentState = {
     ...newStudent(bank, base.nome, base.banda),
     meta: base.meta, dono: remoto.dono ?? local.dono, atualizadoEm: base.atualizadoEm,
+    consolidadas: { ...remoto.consolidadas, ...local.consolidadas },
     historico: [...historico.values()].sort((a, b) => a.data.localeCompare(b.data)),
   }
   for (const t of ordenadas) s = aplicarTentativa(s, bank, t)

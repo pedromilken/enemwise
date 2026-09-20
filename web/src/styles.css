@@ -232,6 +232,9 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .banco-trecho { color: var(--tinta-2); max-width: 32ch; }
 tr.feita.ok td:first-child { border-left: 3px solid var(--verde); }
 tr.feita.erro td:first-child { border-left: 3px solid var(--rosa); }
+.modelos { margin: 2rem 0 0; }
+.modelos td small { display: block; color: var(--tinta-2); }
+.modelos td .faixa { margin-left: 0.5rem; }
 .evolucao-secao { margin: 2rem 0 0; }
 .evolucao { margin-top: 0; }
 .evolucao h3 { font-family: var(--display); font-weight: 600; font-size: 1rem; margin: 0 0 0.25rem; }

@@ -2,6 +2,7 @@
 
 // Constante de escala. Confirmar contra a fórmula usada para replicar as notas (meta.D).
 let D = 1.0
+export const getD = () => D
 export const setD = (d: number) => { D = d }
 
 export function p3pl(theta: number, a: number, b: number, c: number): number {

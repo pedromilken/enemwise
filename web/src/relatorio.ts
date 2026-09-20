@@ -76,11 +76,12 @@ ${[...s.tentativas].reverse().map((t) => { const it = bank.byId.get(t.itemId); r
 export function respostasCsv(s: StudentState, bank: Bank, meta: Meta): string {
   const nome = (id: string) => (meta.conteudos ?? []).find((c) => c.id === id)?.nome ?? id
   const q = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const linhas = [['data', 'edicao', 'questao', 'area', 'habilidade', 'conteudos', 'resposta', 'gabarito', 'correta', 'nivel_dica', 'dica_util', 'confianca', 'p_previsto'].join(';')]
+  const linhas = [['data', 'edicao', 'questao', 'area', 'habilidade', 'conteudos', 'resposta', 'gabarito', 'correta', 'nivel_dica', 'dica_util', 'confianca', 'sessao', 'posicao', 'p_elo', 'p_irt', 'p_bkt', 'p_pfa', 'p_afm'].join(';')]
   for (const t of s.tentativas) {
     const it = bank.byId.get(t.itemId)
     linhas.push([new Date(t.ts).toISOString(), it?.ano, it?.numero, it ? meta.areas[it.area] : '', it?.habilidade,
-      (it?.topicos ?? []).map(nome).join(' | '), t.resposta, it?.gabarito, t.correta ? 1 : 0, nivelDe(t), t.dicaUtil ?? '', t.confianca ?? '', t.pPrevisto ?? ''].map(q).join(';'))
+      (it?.topicos ?? []).map(nome).join(' | '), t.resposta, it?.gabarito, t.correta ? 1 : 0, nivelDe(t), t.dicaUtil ?? '', t.confianca ?? '', t.sessao ?? '', t.posicao ?? '',
+      t.previsoes?.elo ?? '', t.previsoes?.irt ?? '', t.previsoes?.bkt ?? '', t.previsoes?.pfa ?? '', t.previsoes?.afm ?? ''].map(q).join(';'))
   }
   return '\ufeff' + linhas.join('\r\n')  // BOM para o Excel abrir com acentos certos
 }

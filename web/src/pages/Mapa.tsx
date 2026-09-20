@@ -1,5 +1,6 @@
 import { Devolutiva } from '../components/Devolutiva'
 import { Evolucao } from '../components/Evolucao'
+import { Modelos } from '../components/Modelos'
 import { MasteryGrid } from '../components/MasteryGrid'
 import { type Bank, mastery } from '../kt/engine'
 import { META_PADRAO, retorno } from '../kt/feedback'
@@ -83,6 +84,8 @@ export function Mapa({ bank, meta, student, descricoes, bloom, onChange, onReset
       </section>
 
       <Devolutiva bank={bank} meta={meta} student={student} descricoes={descricoes} />
+
+      <Modelos student={student} />
 
       <h2 className="secao">Cartão de habilidades</h2>
       <MasteryGrid areas={meta.areas} descricoes={descricoes}
