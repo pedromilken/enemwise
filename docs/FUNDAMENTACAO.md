@@ -107,3 +107,33 @@ O julgamento de dificuldade também é uma medida de metacognição: cruzado com
 ## Trajetória no tempo
 
 Cada tentativa guarda o θ estimado antes da resposta. A trajetória diária da nota estimada sai desse registro sem recálculo, e é comparada aos resultados externos que o estudante registra (Enem anterior, simulados). A comparação vale como tendência: a estimativa mede domínio nas questões do app com dificuldade descontada; a nota real inclui tempo, cansaço e a prova inteira.
+
+
+## Por que o BKT deixou de pilotar
+
+O estudo dos confundidores com os microdados do Enem (68 células: quatro áreas, dezessete edições, 262 milhões de registros) comparou nove modelos de rastreamento contra um teto psicométrico, a TRI 3PL com parâmetros calibrados pelo INEP, nas mesmas linhas de teste. Três resultados mudam o projeto de um tutor:
+
+1. **O BKT ficou abaixo do teto em 68 de 68 células**, mediana de −0,178 de AUC. AFM e PFA ficaram em torno de −0,08. Usar BKT para decidir o que o estudante domina é usar o pior previsor disponível quando já existem parâmetros calibrados de item.
+2. **O BKT estimou aprendizagem onde não há nenhuma**: mediana de p(T) = 0,047, acima de 0,01 em 39 das 47 células com sequências ajustáveis. O Enem é sessão única, sem ensino entre itens. O que o modelo lê como aprender é efeito de posição e chute.
+3. **A vantagem das arquiteturas profundas é recalibração de item mais ordem de apresentação.** Embaralhando a ordem dentro do estudante, as que não têm estrutura do lado do item caem de 0,049 a 0,079 abaixo do teto; a que tem embeddings estilo Rasch e não usa decaimento volta exatamente ao teto. Estrutura do lado do item é o que paga; maquinaria sequencial acima dela compra dependência de ordem.
+
+**Decisão.** O piloto do ENEMWise é um Elo online sobre a estrutura de item que já temos calibrada (a, b e c do INEP): a habilidade se move pela surpresa da resposta, em dois níveis, área e desvio por habilidade da Matriz. A área agrega dezenas de habilidades e anda pela metade do passo; o desvio responde ao que acabou de acontecer naquela habilidade. Acerto com dica move menos, na proporção do crédito da dica.
+
+**O que continua rodando.** TRI 3PL por EAP (o teto do estudo), BKT, PFA e AFM ficam como sombras: antes de cada resposta registram a probabilidade que previam, e o log exporta todas. O painel "Modelos de rastreamento" mostra o erro de Brier de cada um com as respostas do próprio estudante, e o CSV traz sessão e posição de cada questão, porque sem posição o efeito que o estudo mediu fica invisível.
+
+**Por que o Elo não aparece no estudo.** Ele é um modelo entre sessões: existe para acompanhar uma habilidade que muda ao longo de semanas. No Enem não há o que acompanhar, porque a prova é uma sessão única sem ensino entre itens; ali o Elo convergiria para a mesma estimativa estática da TRI. Não é que ele tenha sido testado e rejeitado: o desenho do estudo não tem a variável que ele usa, que é o tempo entre respostas. Rodá-lo nas 68 células responderia a uma pergunta de calibração, não de rastreamento.
+
+**O que valida, então.** Só o uso do próprio tutor, porque só ele tem intervalo entre sessões. Por isso o log foi montado para isso, e não apenas para a devolutiva: cada resposta guarda a previsão dos cinco modelos feita antes dela, a sessão, a posição dentro da sessão, o número da sessão e os dias desde a última prática daquela habilidade. O carimbo da configuração acompanha a exportação, com todos os coeficientes: sem ele, duas coletas não são comparáveis.
+
+**O protocolo que isso permite**, espelhando o primeiro estudo e acrescentando o que ele não podia ter:
+
+1. **Previsão prequencial entre sessões.** O domínio ao fim de uma sessão prevê o acerto na sessão seguinte, dias depois? Cinco modelos, mesmas linhas de teste, divisão por estudante.
+2. **Retenção.** Nas questões que voltam por revisão espaçada, o modelo separa quem manteve de quem esqueceu, em função do intervalo?
+3. **Controle de posição.** Embaralhando a ordem dentro da sessão, o ganho some? Se sumir, é o mesmo artefato do primeiro estudo, agora dentro do tutor.
+4. **Consolidação em dois dias.** A regra vira hipótese testável: quem confirma em outro dia retém mais do que quem só bateu o limiar num dia só?
+
+**Limite honesto.** Nada disso está validado hoje. Os coeficientes do Elo, do BKT, do PFA e do AFM são valores de projeto, não estimativas nesta base; o que vem dos microdados são os parâmetros de item do INEP, os priors por faixa e o ponto de partida da habilidade. As sombras existem para que essa validação seja possível depois, com dados de uso real.
+
+## Consolidação em dois dias
+
+Uma habilidade só conta como consolidada quando passa de 85% de domínio e confirma isso em **outro dia**. Uma sequência de sorte numa tarde não é domínio, e o intervalo entre sessões é o teste mais simples de retenção que cabe num app de treino.

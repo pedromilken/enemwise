@@ -48,6 +48,10 @@ da prova sem precisar supor qual foi usada. O relatório de casamento sai em `me
 
 ---
 
+## Modelo de rastreamento
+
+O **Elo com Rasch** pilota o treino: domínio exibido, consolidação e escolha das questões. **TRI 3PL (EAP), BKT, PFA e AFM** rodam como sombras, registrando a previsão de cada um antes de cada resposta. A troca segue o estudo dos confundidores com os microdados do Enem: o BKT ficou 0,178 de AUC abaixo do teto psicométrico em 68 de 68 células e estimou aprendizagem onde não havia nenhuma. O Elo não pôde ser avaliado lá, porque é um modelo entre sessões e a prova é sessão única; a validação dele depende do uso do tutor, e o log já sai pronto para ela (previsões dos cinco modelos, sessão, posição e dias desde a última prática da habilidade, com carimbo da configuração). Detalhes em [`docs/FUNDAMENTACAO.md`](docs/FUNDAMENTACAO.md).
+
 ## Login e devolutiva pela Matriz
 
 - **Login opcional** (Supabase) com Google, e-mail e senha, ou link no e-mail, com o progresso somado entre aparelhos. Configuração em [`docs/LOGIN.md`](docs/LOGIN.md).

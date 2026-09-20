@@ -3,10 +3,11 @@ import { MasteryGrid } from '../components/MasteryGrid'
 import { MASTERY } from '../kt/bkt'
 import { type Bank, mastery } from '../kt/engine'
 import { porConteudo } from '../kt/conteudo'
+import { configPesquisa, logPesquisa } from '../pesquisa'
 import { evidencias, porCompetencia } from '../kt/devolutiva'
 import { csvIntervencao, itensParaRevisar, META_PADRAO, risco } from '../kt/feedback'
 import { AREAS, type Meta, nomeHabilidade, type SkillKey, type StudentState } from '../kt/types'
-import { isStudentState, loadTurma, saveTurma } from '../store'
+import { download, downloadTexto, isStudentState, loadTurma, saveTurma } from '../store'
 
 const FAIXA_CLASSE: Record<string, string> = {
   'meta provável': 'faixa ok', 'limítrofe': 'faixa limite', 'abaixo da meta provável': 'faixa risco', 'evidência insuficiente': 'faixa neutra',
@@ -130,6 +131,21 @@ export function Professor({ bank, meta, descricoes, bloom }: {
           </div>
           <button className="btn" onClick={() => baixarCsv('enemwise-intervencao.csv', csvIntervencao(turma, bank, metaTurma))}>Baixar planilha para contato</button>
           <p className="fineprint">A planilha traz faixa de risco e habilidades prioritárias por estudante, pronta para mala direta.</p>
+
+          <h2 className="secao">Log de pesquisa</h2>
+          <p className="fineprint">
+            Uma linha por resposta, com a previsão dos cinco modelos feita antes de cada uma, a posição na sessão e os dias
+            desde a última prática da habilidade. O nome não sai: vai um código estável. É o material da análise entre
+            sessões, que a prova de sessão única não permite fazer.
+          </p>
+          <div className="mapa-acoes">
+            <button className="btn" onClick={() => downloadTexto(`enemwise-log-pesquisa.csv`, logPesquisa(turma, bank, meta), 'text/csv;charset=utf-8')}>
+              Baixar log (CSV)
+            </button>
+            <button className="btn" onClick={() => download('enemwise-config-pesquisa.json', configPesquisa(turma, meta))}>
+              Carimbo da configuração (JSON)
+            </button>
+          </div>
 
           {conteudosTurma.length > 0 && (
             <>

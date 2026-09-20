@@ -445,3 +445,116 @@ describe('dicas sem IA e avaliação da dica', () => {
     expect(setDicaUtil(s, 'inexistente', 'sim')).toBe(s)
   })
 })
+
+import { atualizarElo, brier, dominioElo, estadoInicial, passoElo, PESO_AREA, thetaElo } from './modelos'
+import { consolidada, DOMINIO_CONSOLIDADO, mastery, masteryBkt, sessaoAtual } from './engine'
+
+describe('Elo com Rasch como piloto', () => {
+  const its = [...Array.from({ length: 6 }, (_, i) => item(String(i + 1), 16, 0)),
+               ...Array.from({ length: 6 }, (_, i) => item(String(i + 7), 3, 0))]
+  const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+
+  it('erro numa habilidade não derruba o domínio de outra da mesma área', () => {
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its.slice(0, 6)) s = record(s, bank, it, 'A', 0)    // acerta H16
+    const forte = mastery(s, bank, 'MT-H16')
+    for (const it of its.slice(6)) s = record(s, bank, it, 'B', 0)        // erra H3
+    expect(mastery(s, bank, 'MT-H3')).toBeLessThan(0.4)
+    expect(mastery(s, bank, 'MT-H16')).toBeGreaterThan(0.6)               // cai um pouco (área), não desaba
+    expect(mastery(s, bank, 'MT-H16')).toBeLessThan(forte)
+  })
+
+  it('o passo encolhe com a evidência e o desvio da habilidade anda menos que a área', () => {
+    expect(passoElo(0)).toBeGreaterThan(passoElo(20))
+    const e0 = estadoInicial({ CN: 0, CH: 0, LC: 0, MT: 0 }).elo
+    const e1 = atualizarElo(e0, 'MT', 'MT-H8', 0.4, 1)
+    expect(e1.theta.MT).toBeGreaterThan(0)
+    expect(e1.theta.MT).toBeCloseTo(e1.hab['MT-H8'] * PESO_AREA, 6)   // a área anda metade do que anda a habilidade
+    expect(thetaElo(e1, 'MT', 'MT-H8')).toBeCloseTo(e1.theta.MT + e1.hab['MT-H8'], 10)
+  })
+
+  it('domínio desconta o chute e some quando não há item calibrado', () => {
+    const e = estadoInicial({ CN: 0, CH: 0, LC: 0, MT: 3 }).elo
+    const d = dominioElo(e, 'MT', 'MT-H16', [item('x', 16, 0)], 1)!
+    expect(d).toBeGreaterThan(0.9)
+    expect(dominioElo(e, 'MT', 'MT-H16', [], 1)).toBeNull()
+  })
+
+  it('BKT continua rodando como sombra, com previsão registrada a cada resposta', () => {
+    let s = newStudent(bank, 'a', 1)
+    s = record(s, bank, its[0], 'A', 0)
+    const t = s.tentativas[0]
+    expect(Object.keys(t.previsoes ?? {}).sort()).toEqual(['afm', 'bkt', 'elo', 'irt', 'pfa'])
+    expect(t.previsoes!.elo).toBeGreaterThan(0)
+    expect(masteryBkt(s, bank, 'MT-H16')).toBeGreaterThan(0)
+    expect(t.sessao).toBeTruthy()
+    expect(t.posicao).toBe(1)
+    expect(sessaoAtual(s).posicao).toBe(2)                 // segunda questão da mesma sessão
+  })
+
+  it('consolidação exige o limiar e confirmação em outro dia', () => {
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its.slice(0, 6)) s = record(s, bank, it, 'A', 0)
+    for (const it of [...its.slice(0, 6), ...its.slice(0, 6)]) s = record(s, bank, it, 'A', 0)
+    expect(mastery(s, bank, 'MT-H16')).toBeGreaterThanOrEqual(DOMINIO_CONSOLIDADO)
+    expect(consolidada(s, bank, 'MT-H16')).toBe(false)     // tudo no mesmo dia
+    const amanha = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)
+    expect(consolidada(s, bank, 'MT-H16', amanha)).toBe(true)
+  })
+
+  it('o Brier compara piloto e sombras a partir do log', () => {
+    let s = newStudent(bank, 'a', 1)
+    for (const it of its) s = record(s, bank, it, 'A', 0)
+    const r = brier(s.tentativas)
+    expect(r.map((x) => x.modelo).sort()).toEqual(['afm', 'bkt', 'elo', 'irt', 'pfa'])
+    expect(r[0].brier).toBeLessThanOrEqual(r[r.length - 1].brier)   // vem ordenado
+    expect(r.every((x) => x.n === its.length)).toBe(true)
+  })
+})
+
+import { CONFIG_MODELOS } from './modelos'
+import { codigo, configPesquisa, logPesquisa } from '../pesquisa'
+import { diasDesdeHabilidade } from './engine'
+
+describe('log de pesquisa para a análise entre sessões', () => {
+  const its = [item('1', 16, 0), item('2', 16, 0), item('3', 3, 0)]
+  const bank = makeBank(its, [], ['0-450', '450-550', '550-650', '650-750', '750-1000'])
+  const meta = { areas: { CN: 'CN', CH: 'CH', LC: 'LC', MT: 'MT' }, fonte: 'INEP', edicoes: [2020], D: 1.7 } as never
+
+  it('anonimiza o estudante de forma estável e não reversível', () => {
+    expect(codigo('Ana Silva')).toBe(codigo('  ana silva  '))
+    expect(codigo('Ana Silva')).not.toBe(codigo('Ana Souza'))
+    expect(codigo('Ana Silva')).not.toContain('na')
+  })
+
+  it('cada linha traz as previsões dos cinco modelos, posição e intervalo', () => {
+    let s = newStudent(bank, 'Ana', 1)
+    s = record(s, bank, its[0], 'A', 0)
+    s = record(s, bank, its[1], 'B', 2)
+    const csv = logPesquisa([s], bank, meta)
+    const [cab, l1, l2] = csv.replace('\ufeff', '').split('\r\n')
+    expect(cab.split(';')).toContain('"dias_desde_habilidade"'.replace(/"/g, ''))
+    expect(cab).toContain('p_elo;p_irt;p_bkt;p_pfa;p_afm')
+    expect(l1).toContain(codigo('Ana'))
+    expect(l1).not.toContain('Ana"')           // o nome não aparece
+    expect(l2.split(';')[19]).toBe('"2"')      // nível da dica da segunda resposta
+    expect(Number(l2.split(';')[5].replace(/"/g, ''))).toBe(2)   // posição na sessão
+  })
+
+  it('o intervalo por habilidade olha só a mesma habilidade', () => {
+    let s = newStudent(bank, 'Ana', 1)
+    s = record(s, bank, its[0], 'A', 0)                       // H16
+    expect(diasDesdeHabilidade(s, bank, 'MT-H3')).toBeUndefined()
+    const amanha = Date.now() + 86_400_000
+    expect(diasDesdeHabilidade(s, bank, 'MT-H16', amanha)).toBeCloseTo(1, 1)
+  })
+
+  it('o carimbo registra a configuração dos modelos e o tamanho da coleta', () => {
+    let s = newStudent(bank, 'Ana', 1)
+    s = record(s, bank, its[0], 'A', 0)
+    const c = configPesquisa([s], meta)
+    expect(c.modelos.piloto).toBe('elo')
+    expect(c.modelos).toEqual(CONFIG_MODELOS)
+    expect(c).toMatchObject({ estudantes: 1, respostas: 1, sessoes: 1, com_previsoes: 1 })
+  })
+})

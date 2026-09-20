@@ -82,6 +82,15 @@ export interface Attempt {
   dificuldade?: Dificuldade
   // A dica ajudou? Só faz sentido quando houve dica; mede a utilidade do tutor.
   dicaUtil?: 'sim' | 'pouco' | 'nao'
+  // Previsão de cada modelo ANTES da resposta: piloto e sombras, para comparação posterior.
+  previsoes?: Partial<Record<'elo' | 'irt' | 'bkt' | 'pfa' | 'afm', number>>
+  // Posição na sessão de treino: o estudo mostra efeito de posição; sem isto ele fica invisível.
+  sessao?: string
+  posicao?: number
+  nSessao?: number        // quantas sessões o estudante já teve quando respondeu esta questão
+  // Intervalo desde a última vez que praticou ESTA habilidade. É a variável que o Enem não tem:
+  // sem tempo entre respostas, não há retenção nem esquecimento para medir.
+  diasDesdeHabilidade?: number
 }
 
 export type Dificuldade = 'facil' | 'medio' | 'dificil'
@@ -106,7 +115,10 @@ export interface StudentState {
   banda: number
   meta?: number // nota-alvo na escala do ENEM (ex.: nota de corte do curso desejado)
   historico?: ResultadoAnterior[]
-  mastery: Record<SkillKey, number>
+  mastery: Record<SkillKey, number>          // domínio do piloto (Elo), exibido no app
+  masteryBkt?: Record<SkillKey, number>      // BKT como sombra, para comparação
+  modelos?: import('./modelos').EstadoModelos
+  consolidadas?: Record<SkillKey, string>    // data (AAAA-MM-DD) do 1º dia em que a habilidade bateu o limiar
   tentativas: Attempt[]
   dono?: string        // id do usuário na nuvem a quem este progresso pertence
   atualizadoEm?: number // última alteração de nome, faixa ou meta (desempate na sincronia)

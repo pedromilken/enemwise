@@ -1,5 +1,6 @@
-import { CREDITO_DICA, DEFAULT_LEARN, MASTERY, type BktParams, pCorrect, updateParcial } from './bkt'
-import { eap, info3pl, p3pl, thetaFromScore } from './irt'
+import { CREDITO_DICA, DEFAULT_LEARN, MASTERY, type BktParams, updateParcial } from './bkt'
+import { eap, info3pl, p3pl, thetaFromScore, getD } from './irt'
+import { atualizarBkt, atualizarTodos, type Contexto, dominioElo, estadoInicial, previsoes } from './modelos'
 import { type Area, type Attempt, type Confianca, type Dificuldade, type Item, type SkillKey, type SkillPrior, type StudentState, skillKey } from './types'
 
 export interface Bank {
@@ -53,29 +54,91 @@ export function paramsFor(bank: Bank, item: Item, banda: number): BktParams {
 export function newStudent(bank: Bank, nome: string, banda: number): StudentState {
   const mastery = {} as Record<SkillKey, number>
   for (const k of bank.bySkill.keys()) mastery[k] = initialMastery(bank, k, banda)
-  return { versao: 1, nome, banda, mastery, tentativas: [] }
+  const t0 = thetaFromScore(bandCenter(bank.bandas[banda] ?? '450-550'))
+  return {
+    versao: 1, nome, banda, mastery, masteryBkt: { ...mastery },
+    modelos: estadoInicial({ CN: t0, CH: t0, LC: t0, MT: t0 }),
+    consolidadas: {}, tentativas: [],
+  }
 }
 
+/** Domínio exibido: vem do piloto (Elo sobre os parâmetros do INEP). */
 export function mastery(s: StudentState, bank: Bank, k: SkillKey) {
-  return s.mastery[k] ?? initialMastery(bank, k, s.banda)
+  // O Elo já parte da faixa de nota declarada, que é a mesma informação do prior empírico:
+  // misturar os dois contaria o prior duas vezes. Só se não houver item calibrado é que o prior volta.
+  const elo = s.modelos && dominioElo(s.modelos.elo, k.slice(0, 2) as Area, k, bank.bySkill.get(k) ?? [], getD())
+  return elo ?? s.mastery[k] ?? initialMastery(bank, k, s.banda)
+}
+
+/** Domínio pelo BKT, mantido como sombra para comparação. */
+export const masteryBkt = (s: StudentState, bank: Bank, k: SkillKey) =>
+  s.masteryBkt?.[k] ?? s.mastery[k] ?? initialMastery(bank, k, s.banda)
+
+export const DOMINIO_CONSOLIDADO = 0.85
+const dia = (ts = Date.now()) => new Date(ts).toISOString().slice(0, 10)
+
+/**
+ * Consolidada = bateu o limiar e confirmou em outro dia.
+ * Sem a confirmação, uma sequência de sorte no mesmo dia viraria "domínio".
+ */
+export function consolidada(s: StudentState, bank: Bank, k: SkillKey, hoje = dia()): boolean {
+  const primeiro = s.consolidadas?.[k]
+  return !!primeiro && primeiro < hoje && mastery(s, bank, k) >= DOMINIO_CONSOLIDADO
 }
 
 /** Dica usada conta como erro para o rastreamento (convenção do ASSISTments). */
 export const nivelDe = (t: Pick<Attempt, 'usouDica' | 'nivelDica'>): 0 | 1 | 2 | 3 => t.nivelDica ?? (t.usouDica ? 3 : 0)
 
+/** Sessão de treino: uma por aba/dia, para dar sentido à posição da questão. */
+export function sessaoAtual(s: StudentState, agora = Date.now()): { sessao: string; posicao: number; nSessao: number } {
+  const ultima = s.tentativas.at(-1)
+  const mesma = ultima?.sessao && agora - ultima.ts < 2 * 3600_000 && dia(ultima.ts) === dia(agora)
+  const sessoes = new Set(s.tentativas.map((t) => t.sessao).filter(Boolean))
+  return mesma
+    ? { sessao: ultima!.sessao!, posicao: (ultima!.posicao ?? 0) + 1, nSessao: sessoes.size || 1 }
+    : { sessao: `${dia(agora)}-${Math.random().toString(36).slice(2, 7)}`, posicao: 1, nSessao: sessoes.size + 1 }
+}
+
+/** Dias desde a última prática DESTA habilidade. É a variável de retenção que o Enem não tem. */
+export function diasDesdeHabilidade(s: StudentState, bank: Bank, k: SkillKey, agora = Date.now()): number | undefined {
+  for (let i = s.tentativas.length - 1; i >= 0; i--) {
+    const it = bank.byId.get(s.tentativas[i].itemId)
+    if (it && skillKey(it.area, it.habilidade) === k) {
+      return Math.round(((agora - s.tentativas[i].ts) / 86_400_000) * 100) / 100
+    }
+  }
+  return undefined
+}
+
 export function record(s: StudentState, bank: Bank, item: Item, resposta: string, dica: boolean | 0 | 1 | 2 | 3): StudentState {
   const nivel: 0 | 1 | 2 | 3 = typeof dica === 'boolean' ? (dica ? 3 : 0) : dica
   const correta = resposta === item.gabarito
+  const credito = CREDITO_DICA[nivel]
   const k = skillKey(item.area, item.habilidade)
   const params = paramsFor(bank, item, s.banda)
-  const pLAntes = mastery(s, bank, k)
-  const next = updateParcial(pLAntes, correta, CREDITO_DICA[nivel], params)
+  const pLPiloto = mastery(s, bank, k)
+  const pLBkt = masteryBkt(s, bank, k)
+  const estado = s.modelos ?? estadoInicial({ CN: 0, CH: 0, LC: 0, MT: 0 })
+  const ctx: Contexto = { item, skill: k, estado, pL: pLBkt, params, thetaIrt: theta(s, bank, item.area).mean, D: getD() }
+  const prev = previsoes(ctx)
+  const { sessao, posicao, nSessao } = sessaoAtual(s)
   const t: Attempt = {
     itemId: item.id, resposta, correta, usouDica: nivel > 0, nivelDica: nivel, ts: Date.now(),
-    pPrevisto: round4(pCorrect(pLAntes, params)), pLAntes: round4(pLAntes),
-    thetaAntes: round4(theta(s, bank, item.area).mean), pBanda: item.p_banda?.[s.banda] ?? undefined,
+    pPrevisto: prev.elo, pLAntes: round4(pLPiloto), previsoes: prev, sessao, posicao, nSessao,
+    diasDesdeHabilidade: diasDesdeHabilidade(s, bank, k),
+    thetaAntes: round4(ctx.thetaIrt), pBanda: item.p_banda?.[s.banda] ?? undefined,
   }
-  return { ...s, mastery: { ...s.mastery, [k]: next }, tentativas: [...s.tentativas, t] }
+  const modelos = atualizarTodos(ctx, correta, credito)
+  const depois = { ...s, modelos, masteryBkt: { ...s.masteryBkt, [k]: atualizarBkt(pLBkt, correta && credito >= 0.5, params, DEFAULT_LEARN) },
+                   mastery: { ...s.mastery, [k]: updateParcial(pLPiloto, correta, credito, params) },
+                   tentativas: [...s.tentativas, t] }
+  return marcarConsolidada(depois, bank, k)
+}
+
+/** Registra o primeiro dia em que a habilidade bateu o limiar; a confirmação vem em outro dia. */
+function marcarConsolidada(s: StudentState, bank: Bank, k: SkillKey): StudentState {
+  if (s.consolidadas?.[k] || mastery(s, bank, k) < DOMINIO_CONSOLIDADO) return s
+  return { ...s, consolidadas: { ...s.consolidadas, [k]: dia() } }
 }
 
 /** Aplica uma tentativa já registrada (de outro aparelho, por exemplo) sem alterar o registro. */
@@ -83,8 +146,18 @@ export function aplicarTentativa(s: StudentState, bank: Bank, t: Attempt): Stude
   const item = bank.byId.get(t.itemId)
   if (!item) return { ...s, tentativas: [...s.tentativas, t] } // questão fora do banco atual: guarda, não rastreia
   const k = skillKey(item.area, item.habilidade)
-  const next = updateParcial(mastery(s, bank, k), t.correta, CREDITO_DICA[nivelDe(t)], paramsFor(bank, item, s.banda))
-  return { ...s, mastery: { ...s.mastery, [k]: next }, tentativas: [...s.tentativas, t] }
+  const credito = CREDITO_DICA[nivelDe(t)]
+  const params = paramsFor(bank, item, s.banda)
+  const estado = s.modelos ?? estadoInicial({ CN: 0, CH: 0, LC: 0, MT: 0 })
+  const ctx: Contexto = { item, skill: k, estado, pL: masteryBkt(s, bank, k), params, thetaIrt: theta(s, bank, item.area).mean, D: getD() }
+  const depois = {
+    ...s,
+    modelos: atualizarTodos(ctx, t.correta, credito),
+    masteryBkt: { ...s.masteryBkt, [k]: atualizarBkt(ctx.pL, t.correta && credito >= 0.5, params, DEFAULT_LEARN) },
+    mastery: { ...s.mastery, [k]: updateParcial(mastery(s, bank, k), t.correta, credito, params) },
+    tentativas: [...s.tentativas, t],
+  }
+  return marcarConsolidada(depois, bank, k)
 }
 
 const round4 = (x: number) => Math.round(x * 1e4) / 1e4
