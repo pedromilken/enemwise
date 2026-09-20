@@ -5,10 +5,10 @@ export function Inicio({ bandas, onStart }: { bandas: string[]; onStart: (nome: 
   const [banda, setBanda] = useState(1)
   return (
     <section className="folha inicio">
-      <h1 className="display">Treine o que ainda falta dominar.</h1>
+      <h1 className="display small">Duas perguntas antes de começar</h1>
       <p className="lede">
-        O ENEMWise escolhe cada questão a partir do que você já acertou e errou, habilidade por habilidade da Matriz de Referência.
-        O ponto de partida vem de como milhões de participantes da sua faixa de nota se saíram.
+        Servem para o treino partir do lugar certo: a faixa de nota define a dificuldade inicial das questões, calculada
+        a partir de como os participantes dessa faixa se saíram.
       </p>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); onStart(nome.trim() || 'Estudante', banda) }}>
         <label className="field">

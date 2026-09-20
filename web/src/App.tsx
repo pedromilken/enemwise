@@ -11,16 +11,17 @@ import {
 } from './nuvem'
 import { Banco } from './pages/Banco'
 import { Entrar } from './pages/Entrar'
+import { Home } from './pages/Home'
 import { Inicio } from './pages/Inicio'
 import { Mapa } from './pages/Mapa'
 import { Professor } from './pages/Professor'
 import { Treinar } from './pages/Treinar'
 import { loadStudent, saveStudent } from './store'
 
-type Tab = 'treinar' | 'mapa' | 'professor' | 'entrar' | 'banco'
-const TABS: [Tab, string][] = [['treinar', 'Treinar'], ['banco', 'Questões'], ['mapa', 'Meu retorno'], ['professor', 'Professor']]
+type Tab = 'inicio' | 'treinar' | 'mapa' | 'professor' | 'entrar' | 'banco'
+const TABS: [Tab, string][] = [['inicio', 'Início'], ['treinar', 'Treinar'], ['banco', 'Questões'], ['mapa', 'Meu retorno'], ['professor', 'Professor']]
 const fromQuery = (): string | null => new URLSearchParams(location.hash.split('?')[1] ?? '').get('q')
-const fromHash = (): Tab => (location.hash.startsWith('#entrar') ? 'entrar' : TABS.find(([t]) => location.hash.startsWith(`#${t}`))?.[0] ?? 'treinar')
+const fromHash = (): Tab => (location.hash.startsWith('#entrar') ? 'entrar' : TABS.find(([t]) => location.hash.startsWith(`#${t}`))?.[0] ?? 'inicio')
 
 export default function App() {
   const [bundle, setBundle] = useState<Awaited<ReturnType<typeof loadBundle>> | null>(null)
@@ -99,7 +100,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="topo">
-        <a className="marca" href="#treinar"><Marca /><span className="marca-texto">ENEM<span>Wise</span></span></a>
+        <a className="marca" href="#inicio"><Marca /><span className="marca-texto">ENEM<span>Wise</span></span></a>
         <nav aria-label="Seções">
           {TABS.map(([t, label]) => (
             <a key={t} href={`#${t}`} aria-current={tab === t ? 'page' : undefined}>{label}</a>
@@ -128,6 +129,7 @@ export default function App() {
         <p className="aviso">Demonstração com questões sintéticas. Gere o banco real rodando o pipeline sobre os microdados do INEP.</p>
       )}
       <main>
+        {bundle && bank && tab === 'inicio' && <Home bank={bank} meta={bundle.meta} student={student} />}
         {tab === 'entrar' && <Entrar onPronto={() => { location.hash = '#treinar' }} />}
         {erro && <section className="folha"><h2>O banco de questões não carregou.</h2><p>{erro}</p></section>}
         {!erro && (!bundle || !bank) && <p className="carregando">Carregando banco de questões…</p>}
@@ -145,7 +147,7 @@ export default function App() {
         )}
         {bundle && bank && tab === 'banco' && <Banco bank={bank} meta={bundle.meta} student={student} />}
         {!precisaConta && bundle && bank && tab === 'professor' && <Professor bank={bank} meta={bundle.meta} descricoes={bundle.descricoes} bloom={bundle.bloom} />}
-        {bundle && bank && tab !== 'professor' && tab !== 'entrar' && tab !== 'banco' && !student && !pendente && (
+        {bundle && bank && tab === 'treinar' && !student && !pendente && (
           <Inicio bandas={bundle.meta.bandas} onStart={(nome, banda) => update({ ...newStudent(bank, nome, banda), atualizadoEm: Date.now() })} />
         )}
         {bundle && bank && student && tab === 'treinar' && <Treinar key={itemInicial ?? 'auto'} bank={bank} meta={bundle.meta} student={student} onChange={update} descricoes={bundle.descricoes} itemInicial={itemInicial} />}

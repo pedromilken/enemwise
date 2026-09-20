@@ -201,6 +201,28 @@ a.btn.primary { color: var(--folha); justify-self: start; }
 .tabela-rolagem { overflow-x: auto; margin-bottom: 0.75rem; }
 .prioridades td small, .prioridades th small { display: block; color: var(--tinta-2); font-weight: 400; }
 
+@media (max-width: 620px) {
+  /* com seis seções, a barra rola em vez de quebrar linha no meio de um nome */
+  .topo { align-items: center; }
+  .topo nav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+  .topo nav::-webkit-scrollbar { display: none; }
+  .topo nav a, .topo nav .chip { white-space: nowrap; font-size: 0.92rem; }
+}
+
+/* home */
+.home { display: grid; gap: 1.5rem; }
+.hero { text-align: left; }
+.hero-marca { color: var(--azul); margin: 0 0 0.5rem; }
+.hero .mapa-acoes { margin: 1.25rem 0 0.75rem; }
+.numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+.numero { background: var(--folha); border: 1px solid var(--linha); border-radius: var(--raio-folha); padding: 1rem; }
+.numero strong { display: block; font-family: var(--display); font-size: 1.9rem; line-height: 1.1; }
+.numero span { color: var(--tinta-2); font-size: 0.9rem; }
+.home-blocos { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.25rem; align-items: start; }
+.home-blocos h2, .home-dados h2 { font-family: var(--display); font-size: 1.15rem; margin: 0 0 0.5rem; }
+.home-blocos p { max-width: 60ch; }
+.home-dados ul { margin: 0 0 0.75rem; padding-left: 1.1rem; display: grid; gap: 0.5rem; max-width: 80ch; }
+
 /* conta e sincronia */
 .topo nav { align-items: center; }
 .conta { position: relative; }
