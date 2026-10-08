@@ -15,3 +15,8 @@ pipeline/textos/
 pipeline/v92.json
 pipeline/.pytest_cache/
 web/.env.local
+
+# laboratório de agentes: resultados (grandes) e dependências locais
+agentes/saida/
+tools/agentes/node_modules/
+resultado-*.zip
