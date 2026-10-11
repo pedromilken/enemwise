@@ -26,16 +26,45 @@ def inclinacao(d):
     return float((x * y).sum() / v * 100) if v > 0 else np.nan
 
 
+def _incl_pesos(u, it, x, y, w):
+    """Inclinação dentro do item com pesos por candidato (w = vezes que o candidato saiu na reamostragem)."""
+    ww = w[u]
+    sw = np.bincount(it, ww)
+    mx = np.bincount(it, ww * x) / np.where(sw > 0, sw, 1)
+    my = np.bincount(it, ww * y) / np.where(sw > 0, sw, 1)
+    xc, yc = x - mx[it], y - my[it]
+    v = (ww * xc * xc).sum()
+    return (ww * xc * yc).sum() / v * 100 if v > 0 else np.nan
+
+
 def boot_incl(d, B, rng):
-    uids = d["uid"].unique()
-    if len(uids) < 3:
+    """IC 95% da MESMA estatística do ponto (mediana das inclinações das células): em cada réplica, reamostra os
+    candidatos dentro de cada célula (ano) e toma a mediana das células."""
+    cel = []
+    for _, g in d.groupby("ano"):
+        u = pd.factorize(g["uid"])[0]; it = pd.factorize(g["co_item"])[0]
+        cel.append((u, it, g["posicao"].to_numpy(float), g["correct"].to_numpy(float), u.max() + 1))
+    if not cel or max(c[4] for c in cel) < 3:
         return (np.nan, np.nan)
-    g = {u: x for u, x in d.groupby("uid")}
-    vals = []
-    for _ in range(B):
-        s = pd.concat([g[u] for u in rng.choice(uids, len(uids))], ignore_index=True)
-        vals.append(inclinacao(s))
+    vals = [np.nanmedian([_incl_pesos(u, it, x, y, np.bincount(rng.integers(0, n, n), minlength=n).astype(float))
+                          for u, it, x, y, n in cel]) for _ in range(B)]
     return tuple(np.nanpercentile(vals, [2.5, 97.5]))
+
+
+def concordancia(d):
+    """Diversidade entre os candidatos-agentes: probabilidade de dois candidatos marcarem a MESMA letra no mesmo item
+    (média dos itens). 0,20 = acaso; 1,00 = todos os candidatos são cópias de um só respondente."""
+    if "resposta" not in d:
+        return np.nan
+    r = d[d["resposta"].isin(list("ABCDE"))]
+    vals = []
+    for _, g in r.groupby(["ano", "co_item"]):
+        n = len(g)
+        if n < 2:
+            continue
+        c = g["resposta"].value_counts().to_numpy(float)
+        vals.append(((c * (c - 1)).sum()) / (n * (n - 1)))
+    return float(np.mean(vals)) if vals else np.nan
 
 
 def opp(d):
@@ -118,7 +147,7 @@ def decompor(a, V, rng):
         r = d[~d["acao"].isin(ESGOTADO)]
         tot = np.nanmedian([inclinacao(g) for _, g in d.groupby("ano")])
         res = np.nanmedian([inclinacao(g) for _, g in r.groupby("ano")])
-        lo, hi = boot_incl(r.assign(co_item=r["ano"].astype(str) + "-" + r["co_item"].astype(str)), a.boot, rng)
+        lo, hi = boot_incl(r, a.boot, rng)
         rr = opp(r.assign(uid=r["ano"].astype(str) + "-" + r["uid"].astype(str)))
         g, p = perm_gamma(rr, a.perm, rng) if a.perm else (afm_gamma(rr), np.nan)
         q = d.groupby("ano")["posicao"].transform(lambda s: pd.qcut(s.rank(method="first"), 3, labels=False))
@@ -150,15 +179,15 @@ def comparar_real(a, V):
         # inclinação dentro do item, ponderada pelo número de respostas em cada posição
         incl = []
         for ano, rr in r.groupby("ano"):
-            g = rr.assign(p=rr.acertos / rr.n)
-            mu_x = g.groupby("co_item").apply(lambda z: np.average(z.pos, weights=z.n)).rename("mx")
-            mu_y = g.groupby("co_item").apply(lambda z: np.average(z.p, weights=z.n)).rename("my")
-            g = g.join(mu_x, on="co_item").join(mu_y, on="co_item")
+            g = rr.assign(p=rr.acertos / rr.n, npos=rr.n * rr.pos)
+            s = g.groupby("co_item")[["n", "npos", "acertos"]].sum()
+            g = g.join((s.npos / s.n).rename("mx"), on="co_item").join((s.acertos / s.n).rename("my"), on="co_item")
             x = g.pos - g.mx; y = g.p - g.my
             den = (g.n * x * x).sum()
             if den > 0:
                 incl.append(float((g.n * x * y).sum() / den * 100))
-        pr = r.groupby(["ano", "co_item"]).apply(lambda z: z.acertos.sum() / z.n.sum()).rename("p_real")
+        s = r.groupby(["ano", "co_item"])[["acertos", "n"]].sum()
+        pr = (s.acertos / s.n).rename("p_real")
         pa = v.groupby(["ano", "co_item"]).correct.mean().rename("p_ag")
         j = pd.concat([pr, pa], axis=1, join="inner")
         rho = spearmanr(j.p_ag, j.p_real)[0] if len(j) > 5 else np.nan
@@ -205,13 +234,13 @@ def main():
     cel.to_csv(os.path.join(a.rodada, "analise-celulas.csv"), index=False)
     out = ["# Análise por área — " + cfg["cerebro"], "",
            f"Rodada {cfg['rodada']}; memória {cfg['memoria']}; tempo esgotado: {cfg['esgotado']}. Itens anulados e sem texto fora.", "",
-           "| área | células | acerto | inclinação (pp/pos) [IC 95%] | células com inclinação < 0 | candidatos INEP (mediana) | γ AFM | p (bootstrap γ=0) | % chute | % esgotado |",
-           "|---|---|---|---|---|---|---|---|---|---|"]
+           "| área | células | acerto | inclinação (pp/pos) [IC 95%] | células com inclinação < 0 | candidatos INEP (mediana) | γ AFM | p (bootstrap γ=0) | % chute | % esgotado | concordância entre candidatos |",
+           "|---|---|---|---|---|---|---|---|---|---|---|"]
     for area in ["LC", "CH", "CN", "MT"]:
         d = V[V["area"] == area]
         if d.empty:
             continue
-        lo, hi = boot_incl(d.assign(co_item=d["ano"].astype(str) + "-" + d["co_item"].astype(str)), a.boot, rng)
+        lo, hi = boot_incl(d, a.boot, rng)
         dd = opp(d.assign(uid=d["ano"].astype(str) + "-" + d["uid"].astype(str)))
         g, p = perm_gamma(dd, a.perm, rng) if a.perm else (afm_gamma(dd), np.nan)
         c = cel[cel["area"] == area]
@@ -219,9 +248,13 @@ def main():
         pc = lambda k: 100 * tot["acao"].isin(k).mean()
         out.append(f"| {area} | {len(c)} | {d['correct'].mean():.3f} | {c['incl_pp'].median():+.3f} [{lo:+.3f}, {hi:+.3f}] | "
                    f"{(c['incl_pp'] < 0).sum()}/{len(c)} | {REF_INCL[area]:+.3f} | {g:+.4f} | {p:.3f} | "
-                   f"{pc(['chute']):.1f} | {pc(['esgotado', 'esgotado_na_questao', 'pulou_fim']):.1f} |")
-    out += ["", "A inclinação agregada usa a mediana das células; o IC vem do bootstrap de candidatos no agregado da área.",
+                   f"{pc(['chute']):.1f} | {pc(['esgotado', 'esgotado_na_questao', 'pulou_fim']):.1f} | "
+                   f"{concordancia(d[~d['acao'].isin(ESGOTADO)] if 'acao' in d else d):.2f} |")
+    out += ["", "A inclinação agregada usa a mediana das células; o IC é da mesma mediana, reamostrando os candidatos dentro de cada célula.",
             "γ < 0 com p pequeno = desempenho cai ao longo da prova (cansaço/contexto); γ > 0 = 'aprendizado' durante a prova.",
+            "Concordância = chance de dois candidatos marcarem a mesma letra no mesmo item (questões resolvidas): 0,20 é o acaso,",
+            "1,00 = os candidatos são cópias de um só respondente. Perto de 1, os 20 candidatos não formam uma população (a",
+            "variação entre eles some) e o IC por candidatos fica estreito demais: leia o resultado como de um respondente.",
             "Detalhe por célula: analise-celulas.csv."]
     out += decompor(a, V, rng)
     out += comparar_real(a, V)
