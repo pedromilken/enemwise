@@ -10,6 +10,10 @@ Uso (na raiz do ENEMWise):  python tools/modo-prova/exportar_web.py
 """
 import argparse, json
 from pathlib import Path
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")   # Windows: saída redirecionada (| Select-String) usa cp1252
 
 
 def ler_jsonl(p):

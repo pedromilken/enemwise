@@ -10,11 +10,16 @@ Itens anulados e sem texto ficam fora. A coluna "candidatos (INEP)" traz a refer
 
 Uso: python analisar_prova.py agentes/saida/prova-<cerebro>-<rodada> [--boot 500] [--perm 200]
 """
-import argparse, glob, json, os, sys
+import argparse, glob, json, os, sys, warnings
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")   # Windows: saída redirecionada (| Select-String) usa cp1252
 
+warnings.filterwarnings("ignore", "All-NaN slice", RuntimeWarning)   # réplica sem variação de posição numa célula pequena
 REF_INCL = {"LC": -0.151, "CH": -0.082, "MT": -0.055, "CN": -0.021}   # pp/posição, mediana das 17 edições (artigo)
 ESGOTADO = ["esgotado", "esgotado_na_questao", "pulou_fim"]
 
@@ -150,7 +155,8 @@ def decompor(a, V, rng):
         lo, hi = boot_incl(r, a.boot, rng)
         rr = opp(r.assign(uid=r["ano"].astype(str) + "-" + r["uid"].astype(str)))
         g, p = perm_gamma(rr, a.perm, rng) if a.perm else (afm_gamma(rr), np.nan)
-        q = d.groupby("ano")["posicao"].transform(lambda s: pd.qcut(s.rank(method="first"), 3, labels=False))
+        rk = d.groupby("ano")["posicao"].rank(method="first", pct=True)
+        q = np.minimum((rk * 3).astype(int) - (rk * 3 % 1 == 0).astype(int), 2)    # terço da posição na área (0, 1, 2)
         e = d["acao"].isin(ESGOTADO)
         L.append(f"| {area} | {tot:+.3f} | {res:+.3f} [{lo:+.3f}, {hi:+.3f}] | {g:+.4f} | {p:.3f} | "
                  f"{100 * e[q == 0].mean():.1f} / {100 * e[q == 2].mean():.1f} |")

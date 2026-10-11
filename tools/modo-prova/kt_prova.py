@@ -17,6 +17,10 @@ import argparse, json, os, sys
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")   # Windows: saída redirecionada (| Select-String) usa cp1252
 
 D = 1.7
 G = np.linspace(-4, 4, 81)

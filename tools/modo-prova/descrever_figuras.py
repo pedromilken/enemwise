@@ -15,6 +15,10 @@ Saída: dados/provas-inep-visao.jsonl e dados/provas-inep-espanhol-visao.jsonl (
 """
 import argparse, base64, hashlib, json, os, re, sys, time, urllib.request
 from pathlib import Path
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")   # Windows: saída redirecionada (| Select-String) usa cp1252
 
 
 def jsonl(r):

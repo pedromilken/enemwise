@@ -14,6 +14,10 @@ Uso:
 """
 import argparse, json, os
 import numpy as np
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")   # Windows: saída redirecionada (| Select-String) usa cp1252
 
 
 def main():

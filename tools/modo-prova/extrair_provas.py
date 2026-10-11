@@ -6,6 +6,10 @@ Cada questão também guarda os recortes de página onde está, para descrever f
 Uso: python extrair_provas.py <pasta provas-inep> <saida.jsonl> [--recortes pasta] [--anos 2009 2023]
 """
 from __future__ import annotations
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")   # Windows: saída redirecionada (| Select-String) usa cp1252
 
 import argparse, json, re, sys, unicodedata
 from pathlib import Path

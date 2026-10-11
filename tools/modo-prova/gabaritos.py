@@ -3,6 +3,10 @@ import re, sys, json, collections
 from pathlib import Path
 import pymupdf
 from extrair_provas import extrair
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")   # Windows: saída redirecionada (| Select-String) usa cp1252
 
 RESP = re.compile(r"^(?:[A-E]|anulad[oa]|x)$", re.I)
 

@@ -16,6 +16,10 @@ Saída: ano, area, co_item, pos, acertos, n (uma linha por item × posição em 
 import argparse, json, sys
 from collections import defaultdict
 from pathlib import Path
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8", errors="replace")   # Windows: saída redirecionada (| Select-String) usa cp1252
 
 import numpy as np
 import pandas as pd
