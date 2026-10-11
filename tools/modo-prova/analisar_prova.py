@@ -16,6 +16,7 @@ import pandas as pd
 from scipy.optimize import minimize
 
 REF_INCL = {"LC": -0.151, "CH": -0.082, "MT": -0.055, "CN": -0.021}   # pp/posição, mediana das 17 edições (artigo)
+ESGOTADO = ["esgotado", "esgotado_na_questao", "pulou_fim"]
 
 
 def inclinacao(d):
@@ -100,6 +101,35 @@ def fidelidade_persona(a):
     return L
 
 
+def decompor(a, V, rng):
+    """Separa o efeito do RELÓGIO (questões do fim do caderno que ficam sem tempo e viram chute ou branco, pelo modelo de
+    tempo declarado, igual para qualquer cérebro) do efeito do AGENTE (o acerto cai nas questões que ele de fato resolveu?).
+    O ritmo de cada candidato é sorteado sem relação com o cérebro, então tirar as esgotadas não seleciona candidatos
+    melhores ou piores: a inclinação 'só resolvidas' mede só o agente."""
+    if "acao" not in V or not V["acao"].isin(ESGOTADO).any():
+        return []
+    L = ["", "## Relógio × agente (decomposição da inclinação)", "",
+         "| área | inclinação total (pp/pos) | só resolvidas (pp/pos) [IC 95%] | γ AFM só resolvidas | p | % esgotado no 1º terço / último terço |",
+         "|---|---|---|---|---|---|"]
+    for area in ["LC", "CH", "CN", "MT"]:
+        d = V[V["area"] == area]
+        if d.empty:
+            continue
+        r = d[~d["acao"].isin(ESGOTADO)]
+        tot = np.nanmedian([inclinacao(g) for _, g in d.groupby("ano")])
+        res = np.nanmedian([inclinacao(g) for _, g in r.groupby("ano")])
+        lo, hi = boot_incl(r.assign(co_item=r["ano"].astype(str) + "-" + r["co_item"].astype(str)), a.boot, rng)
+        rr = opp(r.assign(uid=r["ano"].astype(str) + "-" + r["uid"].astype(str)))
+        g, p = perm_gamma(rr, a.perm, rng) if a.perm else (afm_gamma(rr), np.nan)
+        q = d.groupby("ano")["posicao"].transform(lambda s: pd.qcut(s.rank(method="first"), 3, labels=False))
+        e = d["acao"].isin(ESGOTADO)
+        L.append(f"| {area} | {tot:+.3f} | {res:+.3f} [{lo:+.3f}, {hi:+.3f}] | {g:+.4f} | {p:.3f} | "
+                 f"{100 * e[q == 0].mean():.1f} / {100 * e[q == 2].mean():.1f} |")
+    L += ["", "Total = como o ENEM pontua (o que ficou sem tempo vale como chute/branco). Só resolvidas = o agente, sem o relógio.",
+          "Se a queda total some nas resolvidas, ela vem do modelo de tempo, não de cansaço ou contexto do agente."]
+    return L
+
+
 def comparar_real(a, V):
     """Agentes × candidatos reais com o mesmo estimador (precisa de dados/acerto_real.csv)."""
     from scipy.stats import spearmanr
@@ -133,9 +163,15 @@ def comparar_real(a, V):
         j = pd.concat([pr, pa], axis=1, join="inner")
         rho = spearmanr(j.p_ag, j.p_real)[0] if len(j) > 5 else np.nan
         inc_ag = [inclinacao(g) for _, g in v.groupby("ano")]
-        linhas.append(f"| {area} | {v.correct.mean():.3f} | {(r.acertos.sum() / r.n.sum()):.3f} | {rho:+.2f} | "
-                      f"{np.nanmedian(inc_ag):+.3f} | {np.median(incl):+.3f} | {len(j)} |")
-    linhas += ["", "Inclinações = mediana das edições; a dos candidatos usa as posições reais de cada item em cada cor de caderno."]
+        vr = v[~v["acao"].isin(ESGOTADO)] if "acao" in v else v
+        inc_res = [inclinacao(g) for _, g in vr.groupby("ano")]
+        pr2 = vr.groupby(["ano", "co_item"]).correct.mean().rename("p_ag")
+        j2 = pd.concat([pr, pr2], axis=1, join="inner")
+        rho2 = spearmanr(j2.p_ag, j2.p_real)[0] if len(j2) > 5 else np.nan
+        linhas.append(f"| {area} | {v.correct.mean():.3f} | {(r.acertos.sum() / r.n.sum()):.3f} | {rho:+.2f} ({rho2:+.2f}) | "
+                      f"{np.nanmedian(inc_ag):+.3f} ({np.nanmedian(inc_res):+.3f}) | {np.median(incl):+.3f} | {len(j)} |")
+    linhas += ["", "Inclinações = mediana das edições; a dos candidatos usa as posições reais de cada item em cada cor de caderno.",
+               "Entre parênteses: só as questões que o agente resolveu (sem as esgotadas pelo relógio)."]
     return linhas
 
 
@@ -187,6 +223,7 @@ def main():
     out += ["", "A inclinação agregada usa a mediana das células; o IC vem do bootstrap de candidatos no agregado da área.",
             "γ < 0 com p pequeno = desempenho cai ao longo da prova (cansaço/contexto); γ > 0 = 'aprendizado' durante a prova.",
             "Detalhe por célula: analise-celulas.csv."]
+    out += decompor(a, V, rng)
     out += comparar_real(a, V)
     out += fidelidade_persona(a)
     open(os.path.join(a.rodada, "ANALISE.md"), "w", encoding="utf-8").write("\n".join(out) + "\n")
