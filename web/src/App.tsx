@@ -15,11 +15,12 @@ import { Home } from './pages/Home'
 import { Inicio } from './pages/Inicio'
 import { Mapa } from './pages/Mapa'
 import { Professor } from './pages/Professor'
+import { Prova } from './pages/Prova'
 import { Treinar } from './pages/Treinar'
 import { loadStudent, saveStudent } from './store'
 
-type Tab = 'inicio' | 'treinar' | 'mapa' | 'professor' | 'entrar' | 'banco'
-const TABS: [Tab, string][] = [['inicio', 'Início'], ['treinar', 'Treinar'], ['banco', 'Questões'], ['mapa', 'Meu retorno'], ['professor', 'Professor']]
+type Tab = 'inicio' | 'treinar' | 'prova' | 'mapa' | 'professor' | 'entrar' | 'banco'
+const TABS: [Tab, string][] = [['inicio', 'Início'], ['treinar', 'Treinar'], ['prova', 'Simulado'], ['banco', 'Questões'], ['mapa', 'Meu retorno'], ['professor', 'Professor']]
 const fromQuery = (): string | null => new URLSearchParams(location.hash.split('?')[1] ?? '').get('q')
 const fromHash = (): Tab => (location.hash.startsWith('#entrar') ? 'entrar' : TABS.find(([t]) => location.hash.startsWith(`#${t}`))?.[0] ?? 'inicio')
 
@@ -145,6 +146,7 @@ export default function App() {
             <p className="fineprint">Sem conta, você continua treinando normalmente: o progresso fica só neste navegador.</p>
           </section>
         )}
+        {bundle && bank && tab === 'prova' && <Prova bank={bank} student={student} onChange={update} />}
         {bundle && bank && tab === 'banco' && <Banco bank={bank} meta={bundle.meta} student={student} />}
         {!precisaConta && bundle && bank && tab === 'professor' && <Professor bank={bank} meta={bundle.meta} descricoes={bundle.descricoes} bloom={bundle.bloom} />}
         {bundle && bank && tab === 'treinar' && !student && !pendente && (

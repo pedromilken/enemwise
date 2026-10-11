@@ -35,7 +35,7 @@
 const fs = require("fs"), path = require("path");
 const ROOT = path.join(__dirname, "..", "..");
 const KT = require("./kt-canonico.js");
-const NUCLEO_VERSAO = "1.9.2";
+const NUCLEO_VERSAO = "1.10";
 const MODELS = ["elo", "irt", "bkt", "pfa", "afm"];
 const STEP = 3;                                    /* as notas chegam depois do 3º item de cada habilidade (o adaptador pode fixar outro: passo) */
 const PASSO = () => (ENV && ENV.passo) || STEP;
@@ -69,7 +69,7 @@ function makeBrain(spec) {
     if (kind === "aleatorio") return "";   /* o adaptador sorteia a resposta (linha de base do acaso) */
     if (kind === "ollama") {
       const base = process.env.OLLAMA_HOST || "http://localhost:11434", h = { "content-type": "application/json" };
-      const body = { model, messages, stream: false, think: false, options: { temperature, num_predict: max, num_ctx: 8192, seed: Math.floor(rng() * 2147483647) } };
+      const body = { model, messages, stream: false, think: false, options: { temperature, num_predict: max, num_ctx: +(process.env.LAB_NUM_CTX || 8192), seed: Math.floor(rng() * 2147483647) } };
       if (noThink) delete body.think;
       let r = await post(base + "/api/chat", h, body);
       if (!r.ok && r.status === 400 && !noThink) { noThink = true; delete body.think; r = await post(base + "/api/chat", h, body); }
@@ -871,4 +871,4 @@ const run = async () => {
   else console.log("Uso: node tools/agentes/laboratorio.js info|traduzir|calibrar|triagem|piloto|consolidar|comparar|ajustar [--cerebro ollama:qwen3:8b] (veja tools/agentes/LEIA-ME.md)");
 };
 if (require.main === module) run().catch(e => { console.error("\nERRO: " + e.message); process.exit(1); });
-module.exports = { makeRng, regimes, unitMetrics, KT, LAB, TRAD };
+module.exports = { makeRng, regimes, unitMetrics, KT, LAB, TRAD, makeBrain, preflight, readAnswer, brainSlug, NUCLEO_VERSAO };

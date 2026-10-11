@@ -1,0 +1,634 @@
+{
+ "versao": 1,
+ "anos": [
+  {
+   "ano": 2009,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2009-12-05",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "BRANCO",
+      "ROSA"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2009-12-06",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "MT"
+     ],
+     "cores": [
+      "AMARELO",
+      "CINZA",
+      "AZUL",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2010,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2010-11-06",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CH",
+      "CN"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "BRANCO",
+      "ROSA"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2010-11-07",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "MT"
+     ],
+     "cores": [
+      "AMARELO",
+      "CINZA",
+      "AZUL",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2011,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2011-10-22",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CH",
+      "CN"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "BRANCO",
+      "ROSA"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2011-10-23",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "MT"
+     ],
+     "cores": [
+      "AMARELO",
+      "CINZA",
+      "AZUL",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2012,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2012-11-03",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CH",
+      "CN"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "BRANCO",
+      "ROSA"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2012-11-04",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "MT"
+     ],
+     "cores": [
+      "AMARELO",
+      "CINZA",
+      "AZUL",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2013,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2013-10-26",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CH",
+      "CN"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "BRANCO",
+      "ROSA"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2013-10-27",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "MT"
+     ],
+     "cores": [
+      "AMARELO",
+      "CINZA",
+      "AZUL",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2014,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2014-11-08",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CH",
+      "CN"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "BRANCO",
+      "ROSA"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2014-11-09",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "MT"
+     ],
+     "cores": [
+      "AMARELO",
+      "CINZA",
+      "AZUL",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2015,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2015-10-24",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CH",
+      "CN"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "BRANCO",
+      "ROSA"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2015-10-25",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "MT"
+     ],
+     "cores": [
+      "AMARELO",
+      "CINZA",
+      "AZUL",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2016,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2016-11-05",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CH",
+      "CN"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "BRANCO",
+      "ROSA"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2016-11-06",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "CINZA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2017,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2017-11-05",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2017-11-12",
+     "duracao_min": 270,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "CINZA",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2018,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2018-11-04",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2018-11-11",
+     "duracao_min": 300,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "CINZA",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2019,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2019-11-03",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2019-11-10",
+     "duracao_min": 300,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "CINZA",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2020,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2021-01-17",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2021-01-24",
+     "duracao_min": 300,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "CINZA",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2021,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2021-11-21",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2021-11-28",
+     "duracao_min": 300,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "CINZA",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2022,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2022-11-13",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2022-11-20",
+     "duracao_min": 300,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "CINZA",
+      "ROSA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2023,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2023-11-05",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2023-11-12",
+     "duracao_min": 300,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "ROSA",
+      "CINZA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2024,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2024-11-03",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "VERDE",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2024-11-10",
+     "duracao_min": 300,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "VERDE",
+      "CINZA"
+     ]
+    }
+   ]
+  },
+  {
+   "ano": 2025,
+   "dias": [
+    {
+     "dia": 1,
+     "data": "2025-11-09",
+     "duracao_min": 330,
+     "redacao": true,
+     "areas": [
+      "LC",
+      "CH"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "VERDE",
+      "BRANCO"
+     ]
+    },
+    {
+     "dia": 2,
+     "data": "2025-11-16",
+     "duracao_min": 300,
+     "redacao": false,
+     "areas": [
+      "CN",
+      "MT"
+     ],
+     "cores": [
+      "AZUL",
+      "AMARELO",
+      "VERDE",
+      "CINZA"
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -33,8 +33,13 @@ ORDEM_DIAS = {  # (dia, ordem dentro do dia)
 MASK64 = np.uint64(0xFFFFFFFFFFFFFFFF)
 
 
+# 2009: no 1º dia o caderno trazia CN (questões 1-45) antes de CH (46-90); conferido nos rodapés do caderno oficial.
+EXCECOES_ORDEM = {2009: {"CN": (1, 0), "CH": (1, 1)}}
+
+
 def dia_da_area(ano: int, area: str) -> tuple[int, int]:
-    return ORDEM_DIAS["antiga" if ano <= 2016 else "nova"][area]
+    exc = EXCECOES_ORDEM.get(ano, {})
+    return exc.get(area) or ORDEM_DIAS["antiga" if ano <= 2016 else "nova"][area]
 
 
 def _uniforme(ano: int, linhas: np.ndarray, seed: int) -> np.ndarray:
