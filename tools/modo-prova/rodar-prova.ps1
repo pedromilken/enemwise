@@ -119,6 +119,7 @@ foreach ($c in $lista) {
   & $py "$aqui\analisar_prova.py" $dir; Checar "analisar_prova"
   Passo "KT nas provas: $c"
   & $py "$aqui\kt_prova.py" $dir; Checar "kt_prova"
+  & $py "$aqui\kt_prova.py" $dir --so-resolvidas; Checar "kt_prova (só resolvidas)"
 }
 Write-Host ""; Write-Host "Resultados:" -ForegroundColor Green
-$pastas | ForEach-Object { Write-Host "  $_\RESUMO.md, $_\ANALISE.md e $_\KT.md" }
+$pastas | ForEach-Object { Write-Host "  $_\RESUMO.md, $_\ANALISE.md, $_\KT.md e $_\KT-resolvidas.md" }

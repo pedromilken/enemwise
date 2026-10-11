@@ -144,8 +144,14 @@ def contagens(d):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("rodada"); ap.add_argument("--dobras", type=int, default=5)
+    ap.add_argument("--so-resolvidas", action="store_true",
+                    help="tira as questões que ficaram sem tempo (efeito do relógio): grava KT-resolvidas.md")
     a = ap.parse_args()
     d = carregar(a.rodada)
+    suf = ""
+    if a.so_resolvidas:
+        d = d[~d["acao"].isin(["esgotado", "esgotado_na_questao", "pulou_fim"])].reset_index(drop=True)
+        suf = "-resolvidas"
     if d.empty:
         sys.exit("sem respostas")
     cfg = json.load(open(os.path.join(a.rodada, "config.json"), encoding="utf-8"))
@@ -204,11 +210,11 @@ def main():
         prm = bkt_fit(seqs_por_hab(g)[1])
         cel.append(dict(ano=ano, area=area, n=len(g), bkt_T=prm[1], bkt_L0=prm[0], bkt_G=prm[2], bkt_S=prm[3],
                         auc_3pl=auc(g.y, g.p_3pl)))
-    cel = pd.DataFrame(cel); cel.to_csv(os.path.join(a.rodada, "kt-celulas.csv"), index=False)
+    cel = pd.DataFrame(cel); cel.to_csv(os.path.join(a.rodada, f"kt-celulas{suf}.csv"), index=False)
     ex = pd.DataFrame(extras)
     modelos = ["p_3pl", "p_3PL + posição", "p_Elo-3PL", "p_Itens", "p_Itens + posição", "p_PFA", "p_BKT"]
     nomes = ["3PL INEP", "3PL INEP + posição", "Elo-3PL", "Itens (agentes)", "Itens + posição", "PFA", "BKT"]
-    L = ["# KT nas provas — " + cfg["cerebro"], "",
+    L = ["# KT nas provas — " + cfg["cerebro"] + (" (só questões resolvidas, sem o relógio)" if suf else ""), "",
          f"Rodada {cfg['rodada']}; memória {cfg['memoria']}. Validação cruzada em {a.dobras} partes por candidato; 17 edições juntas por área.", "",
          "## Previsão (AUC / log-loss)", "", "| área | respostas | " + " | ".join(nomes) + " |", "|---|---|" + "---|" * len(nomes)]
     for area, g in d.groupby("area"):
@@ -232,8 +238,8 @@ def main():
           "  Sem aprendizagem: p̂(T) ≈ 0, γ acertos ≈ γ erros e ΔAUC PFA − Itens ≈ 0.",
           "- Ordem: δ < 0 = acerto cai ao longo da área; ΔAUC posição > 0 = a ordem acrescenta previsão além do item",
           "  (no artigo, o excesso dos modelos profundos sobre o teto 3PL mora na ordem dos itens).",
-          "Detalhe por célula (ano × área): kt-celulas.csv."]
-    open(os.path.join(a.rodada, "KT.md"), "w", encoding="utf-8").write("\n".join(L) + "\n")
+          "Detalhe por célula (ano × área): kt-celulas" + suf + ".csv."]
+    open(os.path.join(a.rodada, f"KT{suf}.md"), "w", encoding="utf-8").write("\n".join(L) + "\n")
     print("\n".join(L))
 
 
