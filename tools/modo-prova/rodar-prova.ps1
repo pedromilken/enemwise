@@ -17,7 +17,8 @@
     real     : acerto dos candidatos reais por item e posição (-LongoConfig pipeline\v92.json, ou -Microdados para CN/CH/MT)
     tabela   : Tabela 1 (agentes\saida\TABELA1.md e tabela1.csv) a partir das análises de todas as rodadas
     zenodo   : refaz análises e KT de todas as rodadas completas, a Tabela 1 e monta o pacote em zenodo\
-    subir    : envia zenodo\ ao Zenodo como RASCUNHO (pede o token; -Sandbox para testar; -NovaVersaoDe <id> para nova versão)
+    subir    : envia zenodo\ ao Zenodo SEM publicar (pede o token). -Rascunho <id> acrescenta a um rascunho seu (DOI reservado);
+               -NovaVersaoDe <id> cria nova versão de um registro publicado; -Pasta outra pasta; -Sandbox para testar
   -Persona habilidades: cada candidato-agente recebe um perfil de proficiência (condição "LLM com persona")
 
   Se parar no meio, rode o MESMO comando (mesma -Rodada): o que já foi feito é retomado do disco.
@@ -37,7 +38,10 @@ param(
   [string]$LongoConfig = "",            # etapa real: mapeamento da exportação longa v9.2 (ex.: pipeline\v92.json)
   [string]$Rodada = "",
   [switch]$Sandbox,
-  [string]$NovaVersaoDe = ""
+  [string]$NovaVersaoDe = "",
+  [string]$Rascunho = "",               # subir: id do rascunho existente no Zenodo (o número do DOI reservado)
+  [string]$Pasta = "zenodo",            # subir: pasta com os arquivos (zenodo, zenodo-confounds...)
+  [switch]$Substituir
 )
 $ErrorActionPreference = "Stop"
 if ($Cerebros -in @("nenhum", "-", "none")) { $Cerebros = "" }
@@ -118,7 +122,8 @@ if ($Etapa -eq "subir") {
     $s = Read-Host "Token do Zenodo$(if ($Sandbox) { ' (sandbox)' }) (não aparece na tela)" -AsSecureString
     $env:ZENODO_TOKEN = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
   }
-  $arg = @(); if ($Sandbox) { $arg += "--sandbox" }; if ($NovaVersaoDe -ne "") { $arg += @("--nova-versao-de", $NovaVersaoDe) }
+  $arg = @("--pasta", $Pasta); if ($Sandbox) { $arg += "--sandbox" }; if ($Substituir) { $arg += "--substituir" }
+  if ($NovaVersaoDe -ne "") { $arg += @("--nova-versao-de", $NovaVersaoDe) }; if ($Rascunho -ne "") { $arg += @("--rascunho", $Rascunho) }
   & $py "$aqui\subir_zenodo.py" @arg; Checar "subir_zenodo"
   exit 0
 }

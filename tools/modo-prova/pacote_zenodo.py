@@ -7,7 +7,8 @@ Arquivos gerados em zenodo/ (cada um vira um arquivo do registro):
   modo-prova-resultados.zip   rodadas completas (agentes, aleatório, nulos, persona) e laboratório (painel do jogo)
   modo-prova-dados.zip        cadernos de todas as cores, acerto real por item × posição, mapa da exportação v9.2
   modo-prova-codigo.zip       o repositório no commit usado (git archive)
-  LEIA-ME.md, TABELA1.md, tabela1.csv, ambiente.txt, SHA256SUMS.txt, zenodo.json (metadados para subir_zenodo.py)
+  modo-prova-LEIA-ME.md, -TABELA1.md, -tabela1.csv, -ambiente.txt, -SHA256SUMS.txt e zenodo.json (metadados)
+Todos os nomes começam com "modo-prova-" para conviver com outros arquivos no mesmo registro (ex.: os microdados).
 Nada sai do computador: o envio é outro passo (subir_zenodo.py), que cria um RASCUNHO para revisão.
 """
 import argparse, datetime, glob, hashlib, json, os, platform, re, shutil, subprocess, sys, zipfile
@@ -99,11 +100,11 @@ def main():
            "", "## modelos Ollama (nome, digest)", sh(["ollama", "list"])]
     gpu = sh(["nvidia-smi", "--query-gpu=name,memory.total,driver_version", "--format=csv,noheader"])
     amb += ["", "## GPU", gpu]
-    open(os.path.join(out, "ambiente.txt"), "w", encoding="utf-8").write("\n".join(amb) + "\n")
+    open(os.path.join(out, "modo-prova-ambiente.txt"), "w", encoding="utf-8").write("\n".join(amb) + "\n")
 
     for f in ("TABELA1.md", "tabela1.csv"):
         if os.path.exists(os.path.join(a.rodadas, f)):
-            shutil.copy(os.path.join(a.rodadas, f), os.path.join(out, f))
+            shutil.copy(os.path.join(a.rodadas, f), os.path.join(out, "modo-prova-" + f))
 
     # 5) LEIA-ME do pacote
     leia = open(os.path.join(AQUI, "LEIA-ME-zenodo.md"), encoding="utf-8").read()
@@ -111,16 +112,16 @@ def main():
                .replace("{{RODADAS}}", "\n".join(["| pasta | cérebro | versão do motor | memória | persona | provas-dia |", "|---|---|---|---|---|---|"] + resumo)) \
                .replace("{{TEXTOS}}", "in `modo-prova-codigo.zip` (`dados/provas-inep*.jsonl`, `web/public/data/prova`), as in the public repository; "
                         "they can be regenerated from the official INEP PDFs with `baixar-provas-enem.ps1` and `rodar-prova.ps1 -Etapa preparar`")
-    open(os.path.join(out, "LEIA-ME.md"), "w", encoding="utf-8").write(leia)
+    open(os.path.join(out, "modo-prova-LEIA-ME.md"), "w", encoding="utf-8").write(leia)
 
     meta = json.load(open(os.path.join(AQUI, "zenodo.json"), encoding="utf-8"))
     meta["metadata"]["version"] = f"modo-prova {curto}"
     meta["metadata"]["publication_date"] = datetime.date.today().isoformat()
     json.dump(meta, open(os.path.join(out, "zenodo.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
-    with open(os.path.join(out, "SHA256SUMS.txt"), "w", encoding="utf-8") as h:
+    with open(os.path.join(out, "modo-prova-SHA256SUMS.txt"), "w", encoding="utf-8") as h:
         for f in sorted(os.listdir(out)):
-            if f not in ("SHA256SUMS.txt", "zenodo.json"):
+            if f not in ("modo-prova-SHA256SUMS.txt", "zenodo.json"):
                 h.write(f"{sha256(os.path.join(out, f))}  {f}\n")
     tam = sum(os.path.getsize(os.path.join(out, f)) for f in os.listdir(out)) / 1e6
     print(f"Pacote em {out}/ ({tam:.0f} MB): {len(pastas)} rodadas ({n_res} arquivos), {n_dados} arquivos de dados, código no commit {curto}.")
