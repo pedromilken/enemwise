@@ -110,9 +110,10 @@ def perm_gamma(d, P, rng):
 
 
 def fidelidade_persona(a):
-    """Condição persona: o agente se comporta como o perfil pedido? (θ do perfil × nota; acerto domina × não domina)"""
+    """Condição persona: o agente se comporta como o perfil pedido? (θ do perfil × nota; acerto domina × não domina;
+    e COMO: errando de fato ou só pulando a questão, que no fim vira chute)"""
     from scipy.stats import spearmanr
-    th, nota, dom = {}, {}, []
+    th, dom = {}, []
     for l in open(os.path.join(a.rodada, "respostas.jsonl"), encoding="utf-8"):
         r = json.loads(l)
         if "theta_persona" not in r:
@@ -120,18 +121,24 @@ def fidelidade_persona(a):
         th[r["uid"]] = r["theta_persona"]
         for x in r["linhas"]:
             if x.get("correct") is not None and "domina" in x:
-                dom.append((x["area"], bool(x["domina"]), x["correct"]))
-    L = ["", "## Fidelidade da persona", "", "| área | ρ θ do perfil × nota obtida | acerto quando domina | acerto quando NÃO domina | respostas |", "|---|---|---|---|---|"]
+                dom.append((x["area"], bool(x["domina"]), x["correct"], x["acao"] == "resposta"))
+    L = ["", "## Fidelidade da persona", "",
+         "| área | ρ θ do perfil × nota obtida | acerto quando domina | acerto quando NÃO domina | % não resolvidas (domina / NÃO domina) | acerto nas resolvidas (domina / NÃO domina) | respostas |",
+         "|---|---|---|---|---|---|---|"]
     fs = glob.glob(os.path.join(a.rodada, "longo", "*.csv"))
     notas = pd.concat([pd.read_csv(f, usecols=["uid", "nota"]).assign(area=os.path.basename(f)[5:7]) for f in fs]).drop_duplicates(["uid", "area"])
-    D = pd.DataFrame(dom, columns=["area", "domina", "y"])
+    D = pd.DataFrame(dom, columns=["area", "domina", "y", "resolvida"])
     for area in ["LC", "CH", "CN", "MT"]:
         n = notas[notas.area == area].dropna()
         rho = spearmanr(n.uid.map(th), n.nota)[0] if len(n) > 3 else np.nan
         d = D[D.area == area]
-        L.append(f"| {area} | {rho:+.2f} | {d[d.domina].y.mean():.3f} | {d[~d.domina].y.mean():.3f} | {len(d)} |")
-    L += ["", "Persona fiel: ρ alto e positivo, e acerto bem maior quando domina. Se o acerto não cair nas habilidades 'não dominadas',",
-          "o cérebro ignora o perfil (o paradoxo da competência: um modelo que sabe muito não consegue fingir que não sabe)."]
+        sim, nao = d[d.domina], d[~d.domina]
+        L.append(f"| {area} | {rho:+.2f} | {sim.y.mean():.3f} | {nao.y.mean():.3f} | "
+                 f"{100 * (1 - sim.resolvida.mean()):.0f} / {100 * (1 - nao.resolvida.mean()):.0f} | "
+                 f"{sim[sim.resolvida].y.mean():.3f} / {nao[nao.resolvida].y.mean():.3f} | {len(d)} |")
+    L += ["", "Persona fiel: ρ alto e positivo, e acerto bem maior quando domina. Se a diferença vem só das questões não resolvidas",
+          "(puladas, que viram chute) e o acerto nas resolvidas não cai quando 'não domina', o cérebro não finge não saber: ele se abstém",
+          "(o paradoxo da competência: um modelo que sabe muito não consegue fingir que não sabe)."]
     return L
 
 
