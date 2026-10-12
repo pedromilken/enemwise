@@ -1,0 +1,18 @@
+{
+ "metadata": {
+  "upload_type": "dataset",
+  "title": "ENEM exam mode: LLM agents and IRT-simulated candidates sitting the ENEM 2009–2025, with knowledge-tracing analyses (data and code)",
+  "creators": [
+   {"name": "Milken, Pedro Henrique Bernardes Caetano", "affiliation": "Universidade Federal de Uberlândia"}
+  ],
+  "description": "<p>Reproducibility package for the exam-mode validation of an open ENEM practice platform that uses knowledge tracing (KT). The ENEM (Brazil's national exam) is a no-learning control case: each candidate answers a fixed booklet in one sitting, so any learning a KT model reports is an artefact.</p><p>Five LLMs (qwen3, llama3.1, aya-expanse and granite3.3 at 8B; deepseek-flash), a random-answer agent and candidates simulated from the official 3PL item parameters (with and without an injected position effect) sat every exam day of 2009–2025 with the real booklets of every colour, the official duration and answer keys only between days (20 candidates per edition and source). Results are compared with the real accuracy per item and booklet position derived from the public microdata (11.3 billion answers). Analyses: within-item position slopes, AFM learning rate with a parametric bootstrap, BKT, PFA, Elo and 3PL baselines with cross-validation, and a decomposition separating the exam clock from the agent.</p><p>Contents: run outputs (answers, long-format files, analyses), booklets and real-accuracy tables, the code at the commit used, environment and checksums. See LEIA-ME.md.</p><p>Funding: FAPEMIG (Fundação de Amparo à Pesquisa do Estado de Minas Gerais), PAPG doctoral scholarship 15465, PPGCO/UFU.</p>",
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "keywords": ["knowledge tracing", "ENEM", "large-scale assessment", "simulated learners", "large language models", "item response theory", "learning analytics", "position effects"],
+  "related_identifiers": [
+   {"identifier": "https://github.com/pedromilken/enemwise", "relation": "isSupplementTo", "resource_type": "software"}
+  ],
+  "language": "por",
+  "notes": "Funding: FAPEMIG, PAPG doctoral scholarship (grant 15465), Graduate Program in Computer Science (PPGCO), Universidade Federal de Uberlândia."
+ }
+}

@@ -15,12 +15,15 @@
     analisar : só refaz ANALISE.md e KT.md das rodadas (ex.: depois de gerar dados\acerto_real.csv)
     nulo     : candidatos sintéticos pela TRI do INEP (sem ordem) e com efeito de posição conhecido: o nulo e o teste de poder
     real     : acerto dos candidatos reais por item e posição (-LongoConfig pipeline\v92.json, ou -Microdados para CN/CH/MT)
+    tabela   : Tabela 1 (agentes\saida\TABELA1.md e tabela1.csv) a partir das análises de todas as rodadas
+    zenodo   : refaz análises e KT de todas as rodadas completas, a Tabela 1 e monta o pacote em zenodo\
+    subir    : envia zenodo\ ao Zenodo como RASCUNHO (pede o token; -Sandbox para testar; -NovaVersaoDe <id> para nova versão)
   -Persona habilidades: cada candidato-agente recebe um perfil de proficiência (condição "LLM com persona")
 
   Se parar no meio, rode o MESMO comando (mesma -Rodada): o que já foi feito é retomado do disco.
 #>
 param(
-  [ValidateSet("preparar", "piloto", "completo", "analisar", "nulo", "real")][string]$Etapa = "piloto",
+  [ValidateSet("preparar", "piloto", "completo", "analisar", "nulo", "real", "tabela", "zenodo", "subir")][string]$Etapa = "piloto",
   [string]$Provas = "",                 # pasta com <ano>\D1_prova.pdf ... (padrão: provas-inep na raiz do repositório)
   [string]$Microdados = "",             # pasta com ITENS_PROVA_<ano>.csv (os microdados do INEP extraídos)
   [string]$Visao = "qwen2.5vl:7b",      # modelo de visão local para figuras e fórmulas
@@ -32,7 +35,9 @@ param(
   [ValidateSet("chute", "branco")][string]$Esgotado = "chute",
   [ValidateSet("nenhuma", "habilidades")][string]$Persona = "nenhuma",   # habilidades = cada candidato com um perfil (θ e habilidades dominadas)
   [string]$LongoConfig = "",            # etapa real: mapeamento da exportação longa v9.2 (ex.: pipeline\v92.json)
-  [string]$Rodada = ""
+  [string]$Rodada = "",
+  [switch]$Sandbox,
+  [string]$NovaVersaoDe = ""
 )
 $ErrorActionPreference = "Stop"
 if ($Cerebros -in @("nenhum", "-", "none")) { $Cerebros = "" }
@@ -90,6 +95,31 @@ if ($Etapa -eq "real") {
   else { Write-Host "Informe -LongoConfig (exportação v9.2; inclui LC) ou -Microdados (só CN, CH e MT)." -ForegroundColor Red; exit 1 }
   Checar "extrair_acerto_real"
   Write-Host "dados\acerto_real.csv pronto: rode -Etapa analisar para incluir a comparação com os candidatos." -ForegroundColor Green
+  exit 0
+}
+
+if ($Etapa -in @("tabela", "zenodo")) {
+  if ($Etapa -eq "zenodo") {
+    Get-ChildItem agentes\saida -Directory -Filter "prova-*" | Where-Object { (Test-Path "$($_.FullName)\longo") -and $_.Name -notlike "*piloto*" } | ForEach-Object {
+      Passo "Análises: $($_.Name)"
+      & $py "$aqui\analisar_prova.py" $_.FullName | Out-Null; Checar "analisar_prova $($_.Name)"
+      & $py "$aqui\kt_prova.py" $_.FullName | Out-Null; Checar "kt_prova $($_.Name)"
+      & $py "$aqui\kt_prova.py" $_.FullName --so-resolvidas | Out-Null; Checar "kt_prova (só resolvidas) $($_.Name)"
+    }
+  }
+  Passo "Tabela 1"
+  & $py "$aqui\tabela1.py" --rodada $(if ($Rodada -ne "") { $Rodada } else { "completo-v13" }); Checar "tabela1"
+  if ($Etapa -eq "zenodo") { Passo "Pacote do Zenodo"; & $py "$aqui\pacote_zenodo.py"; Checar "pacote_zenodo" }
+  exit 0
+}
+if ($Etapa -eq "subir") {
+  & $py -m pip install --quiet requests; Checar "pip install requests"
+  if (-not $env:ZENODO_TOKEN) {
+    $s = Read-Host "Token do Zenodo$(if ($Sandbox) { ' (sandbox)' }) (não aparece na tela)" -AsSecureString
+    $env:ZENODO_TOKEN = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($s))
+  }
+  $arg = @(); if ($Sandbox) { $arg += "--sandbox" }; if ($NovaVersaoDe -ne "") { $arg += @("--nova-versao-de", $NovaVersaoDe) }
+  & $py "$aqui\subir_zenodo.py" @arg; Checar "subir_zenodo"
   exit 0
 }
 

@@ -130,6 +130,16 @@ Os dados do app saem dos mesmos arquivos dos agentes:
 
     python tools/modo-prova/exportar_web.py      # dados/cadernos.json + provas-inep*-visao.jsonl -> web/public/data/prova/
 
+## Tabela 1 e Zenodo
+
+    powershell -ExecutionPolicy Bypass -File tools\modo-prova\rodar-prova.ps1 -Etapa zenodo            # análises de todas as rodadas, Tabela 1 e pacote em zenodo\
+    powershell -ExecutionPolicy Bypass -File tools\modo-prova\rodar-prova.ps1 -Etapa subir -Sandbox    # teste no sandbox.zenodo.org
+    powershell -ExecutionPolicy Bypass -File tools\modo-prova\rodar-prova.ps1 -Etapa subir             # rascunho no Zenodo (não publica)
+
+O pacote traz as rodadas completas (agentes, aleatório, nulos, persona) e o painel do jogo, os cadernos, o acerto real por item ×
+posição, o código no commit (git archive), o ambiente (pacotes, modelos do Ollama com digest, GPU) e os SHA-256. A publicação, que
+gera o DOI e não pode ser desfeita, é feita na página do rascunho, depois de revisar autores, licença (dados CC BY 4.0) e descrição.
+
 ## Custo e tempo (estimativa; o piloto mede de verdade)
 
 - **Visão local (qwen2.5vl:7b, 12 GB):** 1.177 questões a ~20-40 s cada, ou seja, 7 a 13 h, uma vez só.

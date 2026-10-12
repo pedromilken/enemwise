@@ -24,3 +24,6 @@ resultado-*.zip
 # modo prova: PDFs do INEP e recortes (gerados localmente)
 provas-inep/
 dados/recortes/
+
+# pacote do Zenodo (gerado por pacote_zenodo.py)
+zenodo/
